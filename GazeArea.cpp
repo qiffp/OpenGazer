@@ -29,15 +29,15 @@ bool GazeArea::onIdle() {
 bool GazeArea::on_expose_event(GdkEventExpose *event) {
 	Glib::RefPtr<Gdk::Window> window = get_window();
 	if (window) {
-		Gtk::Allocation allocation = get_allocation();
-		const int width = allocation.get_width();
-		const int height = allocation.get_height();
-
 		Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(window);
 		const IplImage *image = gazeTracker.canvas.get();
 		Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create_from_data((guint8*) image->imageData, Gdk::COLORSPACE_RGB, false, image->depth, image->width, image->height, image->widthStep);
 
-		window->draw_pixbuf(gc, pixbuf, 0, 0, 0, 0, width, height, Gdk::RGB_DITHER_NONE, 0, 0);
+		Gtk::Allocation allocation = get_allocation();
+		const int xOffset = (allocation.get_width() - pixbuf->get_width()) / 2;
+		const int yOffset = (allocation.get_height()- pixbuf->get_height()) / 2;
+
+		window->draw_pixbuf(gc, pixbuf, 0, 0, xOffset, yOffset, -1, -1, Gdk::RGB_DITHER_NONE, 0, 0);
 	}
 
 	return true;

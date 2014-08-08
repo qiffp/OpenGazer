@@ -6,13 +6,13 @@ class VideoInput {
 private:
 	CvCapture *_capture;
 	long _lastFrameTime;
+	std::string _resolutionParameter;
+	int _frameCount;
 
 public:
-	int frameCount;
 	IplImage *frame;
 	CvSize size;
 	bool captureFromVideo;
-	std::string resolutionParameter;
 
 	VideoInput();
 	VideoInput(std::string resolution);

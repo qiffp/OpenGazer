@@ -121,12 +121,12 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 		}
 	}
 
-	if (videoInput.get()->getResolution() == 720) {
+	if (videoInput.get()->getResolution() == 480) {
+		_conversionImage = cvCreateImage(cvSize(640, 480), 8, 3 );
+	} else if (videoInput.get()->getResolution() == 720) {
 		_conversionImage = cvCreateImage(cvSize(1280, 720), 8, 3 );
 	} else if (videoInput.get()->getResolution() == 1080) {
 		_conversionImage = cvCreateImage(cvSize(1920, 1080), 8, 3 );
-	} else if (videoInput.get()->getResolution() == 480) {
-		_conversionImage = cvCreateImage(cvSize(640, 480), 8, 3 );
 	}
 
 	std::string subject = args.getOptionValue("subject");

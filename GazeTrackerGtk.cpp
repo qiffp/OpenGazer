@@ -15,6 +15,12 @@ GazeTrackerGtk::GazeTrackerGtk(int argc, char **argv):
 {
 	try {
 		set_title("opengazer 0.1.1");
+
+		Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
+		Gdk::Rectangle rect;
+		screen->get_monitor_geometry(Gdk::Screen::get_default()->get_n_monitors() - 1, rect);
+
+		set_size_request(rect.get_width(), rect.get_height());
 		move(0, 0);
 
 		// Construct view

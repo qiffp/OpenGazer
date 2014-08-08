@@ -3,10 +3,10 @@
 #include "Video.h"
 
 VideoInput::VideoInput():
-	frameCount(0),
-	captureFromVideo(false),
-	resolutionParameter(0),
-	_capture(cvCaptureFromCAM(0))
+	_capture(cvCaptureFromCAM(0)),
+	_resolutionParameter(0),
+	_frameCount(0),
+	captureFromVideo(false)
 {
 	timeval time;
 	gettimeofday(&time, NULL);
@@ -18,20 +18,20 @@ VideoInput::VideoInput():
 }
 
 VideoInput::VideoInput(std::string resolution):
-	frameCount(0),
-	captureFromVideo(false),
-	resolutionParameter(resolution),
-	_capture(cvCaptureFromCAM(0))
+	_capture(cvCaptureFromCAM(0)),
+	_resolutionParameter(resolution),
+	_frameCount(0),
+	captureFromVideo(false)
 {
-	if (resolution.compare("720") == 0) {
-		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, 1280);
-		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, 720);
-	} else if (resolution.compare("1080") == 0) {
-		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, 1920);
-		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, 1080);
-	} else if (resolution.compare("480") == 0) {
+	if (_resolutionParameter == "480") {
 		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, 640);
 		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, 480);
+	} else if (_resolutionParameter == "720") {
+		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, 1280);
+		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, 720);
+	} else if (_resolutionParameter == "1080") {
+		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, 1920);
+		cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, 1080);
 	}
 
 	//cvSetCaptureProperty(_capture, CV_CAP_PROP_FOURCC, CV_FOURCC('M','J','P','G'));
@@ -46,12 +46,12 @@ VideoInput::VideoInput(std::string resolution):
 }
 
 VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy):
-	frameCount(0),
+	_capture(cvCaptureFromFile(filename.c_str())),
+	_resolutionParameter(resolution),
+	_frameCount(0),
 	frame(cvQueryFrame(_capture)),
 	size(cvSize(frame->width, frame->height)),
-	captureFromVideo(true),
-	resolutionParameter(resolution),
-	_capture(cvCaptureFromFile(filename.c_str()))
+	captureFromVideo(true)
 {
 	timeval time;
 	gettimeofday(&time, NULL);
@@ -91,9 +91,9 @@ VideoInput::~VideoInput() {
 void VideoInput::updateFrame() {
 	static double videoResolution = cvGetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT);
 	static double trackerResolution = frame->height;
-	frameCount++;
+	_frameCount++;
 
-	if (!(captureFromVideo && frameCount == 1)) {
+	if (!(captureFromVideo && _frameCount == 1)) {
 		// If capturing from video and video size is not equal to desired resolution, carry on with resizing
 		if (captureFromVideo && videoResolution != trackerResolution) {
 			IplImage *tempImage = cvQueryFrame(_capture);
@@ -117,7 +117,7 @@ void VideoInput::updateFrame() {
 
 // Returns 480 or 720 depending on camera resolution
 double VideoInput::getResolution() {
-	double value = atof(resolutionParameter.c_str());
+	double value = atof(_resolutionParameter.c_str());
 	return value > 0 ? value : cvGetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT);
 }
 
