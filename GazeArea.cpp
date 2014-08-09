@@ -35,7 +35,7 @@ bool GazeArea::on_expose_event(GdkEventExpose *event) {
 
 		Gtk::Allocation allocation = get_allocation();
 		const int xOffset = (allocation.get_width() - pixbuf->get_width()) / 2;
-		const int yOffset = (allocation.get_height()- pixbuf->get_height()) / 2;
+		const int yOffset = (allocation.get_height() - pixbuf->get_height()) / 2;
 
 		window->draw_pixbuf(gc, pixbuf, 0, 0, xOffset, yOffset, -1, -1, Gdk::RGB_DITHER_NONE, 0, 0);
 	}
@@ -61,7 +61,12 @@ bool GazeArea::on_button_press_event(GdkEventButton *event) {
 
 		if (event->type == GDK_BUTTON_PRESS) {
 			PointTracker &pointTracker = gazeTracker.trackingSystem->pointTracker;
-			Point point(event->x, event->y);
+
+			Gtk::Allocation allocation = get_allocation();
+			int canvasOffsetX = (allocation.get_width() - gazeTracker.canvas.get()->width) / 2;
+			int canvasOffsetY = (allocation.get_height() - gazeTracker.canvas.get()->height) / 2;
+
+			Point point(event->x - canvasOffsetX, event->y - canvasOffsetY);
 
 			int closest = pointTracker.getClosestTracker(point);
 			if (closest >= 0 && point.distance(pointTracker.currentPoints[closest]) <= 25) {
@@ -80,7 +85,12 @@ bool GazeArea::on_button_press_event(GdkEventButton *event) {
 bool GazeArea::on_button_release_event(GdkEventButton *event) {
 	if (event->button == 1) {
 		PointTracker &pointTracker = gazeTracker.trackingSystem->pointTracker;
-		Point point(event->x, event->y);
+
+		Gtk::Allocation allocation = get_allocation();
+		int canvasOffsetX = (allocation.get_width() - gazeTracker.canvas.get()->width) / 2;
+		int canvasOffsetY = (allocation.get_height() - gazeTracker.canvas.get()->height) / 2;
+
+		Point point(event->x - canvasOffsetX, event->y - canvasOffsetY);
 
 		if (_lastPointId >= 0) {
 			switch(_clickCount) {
