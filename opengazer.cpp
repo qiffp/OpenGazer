@@ -10,7 +10,8 @@ int main(int argc, char **argv) {
 		Gtk::Main kit(argc, argv);
 		Glib::thread_init();
 
-		GazeTrackerGtk window(argc, argv);
+		MainGazeTracker::instance(argc, argv);
+		GazeTrackerGtk window;
 		window.show();
 
 		Gtk::Main::run(window);

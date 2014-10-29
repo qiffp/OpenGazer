@@ -1,8 +1,8 @@
 #include "GazeTrackerGtk.h"
 #include "Application.h"
 
-GazeTrackerGtk::GazeTrackerGtk(int argc, char **argv):
-	_picture(argc, argv),
+GazeTrackerGtk::GazeTrackerGtk():
+	_picture(),
 	_vbox(false, 0),
 	_buttonBar(true, 0),
 	_calibrateButton("Calibrate"),
@@ -38,14 +38,15 @@ GazeTrackerGtk::GazeTrackerGtk(int argc, char **argv):
 		_buttonBar.pack_start(_loadButton);
 
 		// Connect buttons
-		_calibrateButton.signal_clicked().connect(sigc::mem_fun(&_picture.gazeTracker, &MainGazeTracker::startCalibration));
-		_testButton.signal_clicked().connect(sigc::mem_fun(&_picture.gazeTracker, &MainGazeTracker::startTesting));
-		_saveButton.signal_clicked().connect(sigc::mem_fun(&_picture.gazeTracker, &MainGazeTracker::savePoints));
-		_loadButton.signal_clicked().connect(sigc::mem_fun(&_picture.gazeTracker, &MainGazeTracker::loadPoints));
-		_chooseButton.signal_clicked().connect(sigc::mem_fun(&_picture.gazeTracker, &MainGazeTracker::choosePoints));
-		_pauseButton.signal_clicked().connect(sigc::mem_fun(&_picture.gazeTracker, &MainGazeTracker::pauseOrRepositionHead));
+		MainGazeTracker &gazeTracker = MainGazeTracker::instance();
+		_calibrateButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::startCalibration));
+		_testButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::startTesting));
+		_saveButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::savePoints));
+		_loadButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::loadPoints));
+		_chooseButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::choosePoints));
+		_pauseButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::pauseOrRepositionHead));
 		_pauseButton.signal_clicked().connect(sigc::mem_fun(this, &GazeTrackerGtk::changePauseButtonText));
-		_clearButton.signal_clicked().connect(sigc::mem_fun(&_picture.gazeTracker, &MainGazeTracker::clearPoints));
+		_clearButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::clearPoints));
 
 		// Display view
 		_vbox.show();

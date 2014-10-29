@@ -4,7 +4,7 @@
 
 class GazeTrackerGtk: public Gtk::Window {
 public:
-	GazeTrackerGtk(int argc, char **argv);
+	GazeTrackerGtk();
 	virtual ~GazeTrackerGtk();
 
 private:

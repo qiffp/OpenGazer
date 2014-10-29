@@ -7,14 +7,10 @@
 
 class GazeArea: public Gtk::DrawingArea {
 public:
-	MainGazeTracker gazeTracker;
-
-	GazeArea(int argc, char **argv);
+	GazeArea();
 	virtual ~GazeArea();
 
 private:
-	friend class GazeTrackerGtk;
-
 	int _lastPointId;
 	int _clickCount;
 

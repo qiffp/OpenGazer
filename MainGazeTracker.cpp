@@ -46,6 +46,21 @@ namespace {
 	}
 }
 
+MainGazeTracker &MainGazeTracker::instance(int argc, char **argv) {
+	static MainGazeTracker *instance = NULL;
+
+	if (argc && argv) {
+		instance = new MainGazeTracker(argc, argv);
+	} else {
+		if (instance == NULL) {
+			std::cout << "No existing MainGazeTracker instance - need to supply arguments to create one" << std::endl;
+			exit(1);
+		}
+	}
+
+	return *instance;
+}
+
 MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	_frameStoreLoad(-1),
 	_stores(Application::getStores()),

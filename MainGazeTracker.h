@@ -17,7 +17,8 @@ public:
 	boost::scoped_ptr<IplImage> canvas;
 	boost::scoped_ptr<VideoInput> videoInput;
 
-	MainGazeTracker(int argc, char **argv);
+
+	static MainGazeTracker &instance(int argc=0, char **argv=NULL);
 	~MainGazeTracker();
 	void process();
 	void simulateClicks();
@@ -57,5 +58,7 @@ private:
 	std::vector<Command> _commands;
 	int _commandIndex;
 	GameWindow *_gameWin;
+
+	MainGazeTracker(int argc, char **argv);
 };
 
