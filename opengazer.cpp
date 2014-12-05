@@ -1,6 +1,5 @@
 #define BOOST_FILESYSTEM_VERSION 3
 
-//#define EXPERIMENT_MODE
 //#define DEBUG
 
 #include "GazeTrackerGtk.h"

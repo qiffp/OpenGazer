@@ -2,7 +2,8 @@
 #include "Application.h"
 
 GazeTrackerGtk::GazeTrackerGtk():
-	_picture(),
+	_gazeArea(),
+	_testArea(&(MainGazeTracker::instance().trackingSystem->gazeTracker.output)),
 	_vbox(false, 0),
 	_buttonBar(true, 0),
 	_calibrateButton("Calibrate"),
@@ -27,7 +28,8 @@ GazeTrackerGtk::GazeTrackerGtk():
 		add(_vbox);
 
 		_vbox.pack_start(_buttonBar, false, true, 0);
-		_vbox.pack_start(_picture);
+		_vbox.pack_start(_gazeArea);
+		_vbox.pack_start(_testArea);
 
 		_buttonBar.pack_start(_chooseButton);
 		_buttonBar.pack_start(_clearButton);
@@ -40,18 +42,24 @@ GazeTrackerGtk::GazeTrackerGtk():
 		// Connect buttons
 		MainGazeTracker &gazeTracker = MainGazeTracker::instance();
 		_calibrateButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::startCalibration));
+		_calibrateButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "calibrate"));
 		_testButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::startTesting));
+		_testButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "test"));
 		_saveButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::savePoints));
 		_loadButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::loadPoints));
 		_chooseButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::choosePoints));
+		_chooseButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "choose"));
 		_pauseButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::pauseOrRepositionHead));
+		_pauseButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "pause"));
 		_pauseButton.signal_clicked().connect(sigc::mem_fun(this, &GazeTrackerGtk::changePauseButtonText));
 		_clearButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::clearPoints));
+		_clearButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "clear"));
 
 		// Display view
 		_vbox.show();
 		_buttonBar.show();
-		_picture.show();
+		_gazeArea.show();
+		_testArea.hide();
 		_calibrateButton.show();
 		//_saveButton.show();
 		//_loadButton.show();
@@ -72,6 +80,16 @@ void GazeTrackerGtk::changePauseButtonText() {
 		_pauseButton.set_label("Unpause");
 	} else {
 		_pauseButton.set_label("Pause");
+	}
+}
+
+void GazeTrackerGtk::toggleView(std::string button) {
+	if (button == "choose" || button == "pause" || button == "clear") {
+		_gazeArea.show();
+		_testArea.hide();
+	} else {
+		_gazeArea.hide();
+		_testArea.show();
 	}
 }
 

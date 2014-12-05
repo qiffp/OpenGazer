@@ -2,7 +2,6 @@
 
 #include "TrackingSystem.h"
 #include "Calibrator.h"
-#include "GameWindow.h"
 #include "OutputMethods.h"
 #include "Video.h"
 #include "Command.h"
@@ -16,7 +15,8 @@ public:
 	FrameProcessing frameFunctions;
 	boost::scoped_ptr<IplImage> canvas;
 	boost::scoped_ptr<VideoInput> videoInput;
-
+	IplImage *repositioningImage;
+	WindowPointer *calibrationPointer;
 
 	static MainGazeTracker &instance(int argc=0, char **argv=NULL);
 	~MainGazeTracker();
@@ -27,7 +27,6 @@ public:
 	void addExemplar(Point exemplar);
 	void startCalibration();
 	void startTesting();
-	void startPlaying();
 	void savePoints();
 	void loadPoints();
 	void choosePoints();
@@ -48,7 +47,6 @@ private:
 	std::ifstream *_commandInputFile;
 	IplImage *_conversionImage;
 	IplImage *_overlayImage;
-	IplImage *_repositioningImage;
 	std::vector<CvRect> _faces;
 	Calibrator *_calibrator;
 	int _headDistance;
@@ -57,7 +55,6 @@ private:
 	bool _recording;
 	std::vector<Command> _commands;
 	int _commandIndex;
-	GameWindow *_gameWin;
 
 	MainGazeTracker(int argc, char **argv);
 };

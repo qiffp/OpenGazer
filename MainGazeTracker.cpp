@@ -239,18 +239,14 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	trackingSystem->gazeTracker.outputFile = _outputFile;
 	isCalibrationOutputWritten = true;
 
-	_gameWin = new GameWindow(&(trackingSystem->gazeTracker.output));
-	_gameWin->show();
-
 	if (videoInput.get()->getResolution() == 720) {
-		_repositioningImage = cvCreateImage(cvSize(1280, 720), 8, 3);
+		repositioningImage = cvCreateImage(cvSize(1280, 720), 8, 3);
 	} else if (videoInput.get()->getResolution() == 1080) {
-		_repositioningImage = cvCreateImage(cvSize(1920, 1080), 8, 3);
+		repositioningImage = cvCreateImage(cvSize(1920, 1080), 8, 3);
 	} else if (videoInput.get()->getResolution() == 480) {
-		_repositioningImage = cvCreateImage(cvSize(640, 480), 8, 3);
+		repositioningImage = cvCreateImage(cvSize(640, 480), 8, 3);
 	}
 
-	_gameWin->setRepositioningImage(_repositioningImage);
 	Application::faceRectangle = NULL;
 }
 
@@ -382,12 +378,12 @@ void MainGazeTracker::process() {
 		cvRectangle(canvas.get(), cvPoint(0, videoInput->size.height - rectangleThickness), cvPoint(videoInput->size.width, videoInput->size.height), color, CV_FILLED);	// bottom
 
 		// Fill the repositioning image so that it can be displayed on the subject's monitor too
-		cvAddWeighted(frame, 0.5, _overlayImage, 0.5, 0.0, _repositioningImage);
+		cvAddWeighted(frame, 0.5, _overlayImage, 0.5, 0.0, repositioningImage);
 
-		cvRectangle(_repositioningImage, cvPoint(0, 0), cvPoint(rectangleThickness, videoInput->size.height), color, CV_FILLED);	// left
-		cvRectangle(_repositioningImage, cvPoint(0, 0), cvPoint(videoInput->size.width, rectangleThickness), color, CV_FILLED);		// top
-		cvRectangle(_repositioningImage, cvPoint(videoInput->size.width - rectangleThickness, 0), cvPoint(videoInput->size.width, videoInput->size.height), color, CV_FILLED);	// right
-		cvRectangle(_repositioningImage, cvPoint(0, videoInput->size.height - rectangleThickness), cvPoint(videoInput->size.width, videoInput->size.height), color, CV_FILLED);	// bottom
+		cvRectangle(repositioningImage, cvPoint(0, 0), cvPoint(rectangleThickness, videoInput->size.height), color, CV_FILLED);	// left
+		cvRectangle(repositioningImage, cvPoint(0, 0), cvPoint(videoInput->size.width, rectangleThickness), color, CV_FILLED);		// top
+		cvRectangle(repositioningImage, cvPoint(videoInput->size.width - rectangleThickness, 0), cvPoint(videoInput->size.width, videoInput->size.height), color, CV_FILLED);	// right
+		cvRectangle(repositioningImage, cvPoint(0, videoInput->size.height - rectangleThickness), cvPoint(videoInput->size.width, videoInput->size.height), color, CV_FILLED);	// bottom
 	}
 
 	frameFunctions.process();
@@ -531,19 +527,12 @@ void MainGazeTracker::addExemplar(Point exemplar) {
 void MainGazeTracker::startCalibration() {
 	Application::status = Application::STATUS_CALIBRATING;
 
-	if (_gameWin == NULL) {
-		_gameWin = new GameWindow(&(trackingSystem->gazeTracker.output));
-	}
-
-	_gameWin->show();
-
 	if (_recording) {
 		*_commandOutputFile << _totalFrameCount << " CALIBRATE" << std::endl;
 	}
 
 	boost::shared_ptr<WindowPointer> pointer(new WindowPointer(WindowPointer::PointerSpec(30,30,1,0,0.2)));
-
-	_gameWin->setCalibrationPointer(pointer.get());
+	calibrationPointer = pointer.get();
 
 	if (Gdk::Screen::get_default()->get_n_monitors() > 1) {
 		boost::shared_ptr<WindowPointer> mirror(new WindowPointer(WindowPointer::PointerSpec(30,30,1,0,0)));
@@ -569,8 +558,7 @@ void MainGazeTracker::startTesting() {
 
 	std::vector<Point> points;
 	boost::shared_ptr<WindowPointer> pointer(new WindowPointer(WindowPointer::PointerSpec(30,30,1,0,0.2)));
-
-	_gameWin->setCalibrationPointer(pointer.get());
+	calibrationPointer = pointer.get();
 
 	if (Gdk::Screen::get_default()->get_n_monitors() > 1) {
 		boost::shared_ptr<WindowPointer> mirror(new WindowPointer(WindowPointer::PointerSpec(30,30,1,0,0)));
@@ -592,13 +580,6 @@ void MainGazeTracker::startTesting() {
 
 	frameFunctions.clear();
 	frameFunctions.addChild(&frameFunctions, moving);
-}
-
-void MainGazeTracker::startPlaying() {
-	if (_gameWin == NULL) {
-		_gameWin = new GameWindow(&(trackingSystem->gazeTracker.output));
-	}
-	_gameWin->show();
 }
 
 void MainGazeTracker::savePoints() {
