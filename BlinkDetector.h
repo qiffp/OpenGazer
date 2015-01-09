@@ -53,7 +53,8 @@ private:
 	static std::vector<StateNode> constructStates();
 };
 
-//template <class T> class TwoClassDetector {
+//template <class T>
+//class TwoClassDetector {
 //public:
 //	TwoClassDetector(const T& class0, const T& class1):
 //		_class0(class0),
@@ -72,7 +73,8 @@ private:
 //	const T _class1;
 //};
 
-//template <class T, class Func> class Accumulator {
+//template <class T, class Func>
+//class Accumulator {
 //public:
 //	Accumulator(const T& initial, const Func& func):
 //		_accumulator(initial),
@@ -93,7 +95,8 @@ private:
 //	Func _func;
 //};
 
-//template <T> class GetFurtherObject {
+//template <T>
+//class GetFurtherObject {
 //public:
 //	T operator()(const T& one, const T& two) {
 //		return distance(_referenceObject, one) > distance(_referenceObject, two) ? one : two;

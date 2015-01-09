@@ -6,7 +6,8 @@
 	for(typeof(container.begin())iter = container.begin(); iter != container.end(); iter++)	\
 		if ((*iter)->parent == this)
 
-template <class ParentType, class ChildType> class Containee {
+template <class ParentType, class ChildType>
+class Containee {
 public:
 	ParentType *parent;		/* set to null to request removal */
 
@@ -19,7 +20,8 @@ protected:
 	}
 };
 
-template <class ParentType, class ChildType> class BaseContainer {
+template <class ParentType, class ChildType>
+class BaseContainer {
 
 	typedef boost::shared_ptr<ChildType> ChildPtr;
 
@@ -54,7 +56,8 @@ private:
 	}
 };
 
-template <class ParentPtr, class ChildPtr> class ProcessContainer: public BaseContainer<ParentPtr, ChildPtr> {
+template <class ParentPtr, class ChildPtr>
+class ProcessContainer: public BaseContainer<ParentPtr, ChildPtr> {
 public:
 	virtual ~ProcessContainer() {};
 

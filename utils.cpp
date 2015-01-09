@@ -177,7 +177,8 @@ namespace Utils {
 }
 
 namespace boost {
-	template <> void checked_delete(IplImage *image) {
+	template <>
+	void checked_delete(IplImage *image) {
 		//cout << "deleting scoped image" << endl;
 		if (image) {
 			cvReleaseImage(&image);

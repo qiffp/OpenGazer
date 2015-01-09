@@ -51,8 +51,7 @@ WindowPointer::PointerSpec::PointerSpec(int width, int height, double red, doubl
 {
 }
 
-WindowPointer::GtkPointerDrawingArea::
-GtkPointerDrawingArea(const PointerSpec &pointerspec):
+WindowPointer::GtkPointerDrawingArea::GtkPointerDrawingArea(const PointerSpec &pointerspec):
 	_spec(pointerspec)
 {
 	set_size_request(_spec.width, _spec.height);

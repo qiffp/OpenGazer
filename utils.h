@@ -23,11 +23,13 @@ namespace Utils {
 		}
 	};
 
-	template <class T> inline T square(T a) {
+	template <class T>
+	inline T square(T a) {
 		return a * a;
 	}
 
-	template <class T> std::ostream &operator<< (std::ostream &out, std::vector<T> const &vec) {
+	template <class T>
+	std::ostream &operator<< (std::ostream &out, std::vector<T> const &vec) {
 		out << vec.size() << std::endl;
 		xForEach(iter, vec) {
 			out << *iter << std::endl;
@@ -35,7 +37,8 @@ namespace Utils {
 		return out;
 	}
 
-	template <class T> std::istream &operator>> (std::istream &in, std::vector<T> &vec) {
+	template <class T>
+	std::istream &operator>> (std::istream &in, std::vector<T> &vec) {
 		int size;
 		T element;
 
@@ -49,14 +52,16 @@ namespace Utils {
 		return in;
 	}
 
-	template <class T> T teeFunction(T source, char *prefix, char *postfix="\n") {
+	template <class T>
+	T teeFunction(T source, char *prefix, char *postfix="\n") {
 		std::cout << prefix << source << postfix;
 		return source;
 	}
 
 	#define debugTee(x) teeFunction(x, #x ": ")
 
-	template <class T> void saveVector(CvFileStorage *out, const char *name, std::vector<T> &vec) {
+	template <class T>
+	void saveVector(CvFileStorage *out, const char *name, std::vector<T> &vec) {
 		cvStartWriteStruct(out, name, CV_NODE_SEQ);
 		for (int i = 0; i < vec.size(); i++) {
 			vec[i].save(out);
@@ -64,7 +69,8 @@ namespace Utils {
 		cvEndWriteStruct(out);
 	}
 
-	template <class T> std::vector<T> loadVector(CvFileStorage *in, CvFileNode *node) {
+	template <class T>
+	std::vector<T> loadVector(CvFileStorage *in, CvFileNode *node) {
 		CvSeq *seq = node->data.seq;
 		CvSeqReader reader;
 
@@ -80,11 +86,13 @@ namespace Utils {
 		return result;
 	}
 
-	template <class From, class To> void convert(const From &from, To &to) {
+	template <class From, class To>
+	void convert(const From &from, To &to) {
 		to = from;
 	}
 
-	template <class From, class To> void convert(const std::vector<From> &from, std::vector<To> &to) {
+	template <class From, class To>
+	void convert(const std::vector<From> &from, std::vector<To> &to) {
 		to.resize(from.size());
 		for (int i = 0; i < (int)from.size(); i++) {
 			convert(from[i], to[i]);
@@ -132,7 +140,8 @@ namespace Utils {
 
 	// #define output(X) { std::cout << #X " = " << X << std::endl; }
 
-	template <class T> int maxAbsIndex(T const &vec, int size) {
+	template <class T>
+	int maxAbsIndex(T const &vec, int size) {
 		int maxIndex = 0;
 
 		for (int i = 0; i < size; i++) {
@@ -162,6 +171,7 @@ namespace Utils {
 }
 
 namespace boost {
-	template <> void checked_delete(IplImage *image);
+	template <>
+	void checked_delete(IplImage *image);
 }
 

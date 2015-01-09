@@ -12,47 +12,48 @@ namespace {
 	IplImage *allImages[1000];
 	IplImage *allImagesLeft[1000];
 	double allOutputCoords[1000][2];
-}
 
-template <class T, class S> std::vector<S> getSubVector(std::vector<T> const &input, S T::*ptr) {
-	std::vector<S> output(input.size());
+	template <class T, class S>
+	std::vector<S> getSubVector(std::vector<T> const &input, S T::*ptr) {
+		std::vector<S> output(input.size());
 
-	for (int i = 0; i < input.size(); i++) {
-		output[i] = input[i].*ptr;
+		for (int i = 0; i < input.size(); i++) {
+			output[i] = input[i].*ptr;
+		}
+
+		return output;
 	}
 
-	return output;
-}
-
-static void ignore(const IplImage *) {
-}
-
-void FANN_API getTrainingData(unsigned int row, unsigned int inputSize, unsigned int outputSize, fann_type *input, fann_type *output) {
-	//std::cout << "GTD: row=" << row << ", inp. size=" << inputSize << ", op. size=" << outputSize << std::endl;
-	for (int i = 0; i < inputSize; i++) {
-		input[i] = allInputs[row][i];
+	static void ignore(const IplImage *) {
 	}
 
-	for (int i = 0; i < outputSize; i++) {
-		output[i] = allOutputs[row][i];
+	void FANN_API getTrainingData(unsigned int row, unsigned int inputSize, unsigned int outputSize, fann_type *input, fann_type *output) {
+		//std::cout << "GTD: row=" << row << ", inp. size=" << inputSize << ", op. size=" << outputSize << std::endl;
+		for (int i = 0; i < inputSize; i++) {
+			input[i] = allInputs[row][i];
+		}
+
+		for (int i = 0; i < outputSize; i++) {
+			output[i] = allOutputs[row][i];
+		}
+
+		//memcpy(input, allInputs[row], inputSize * sizeof(fann_type));
+		//memcpy(output, allOutputs[row], outputSize * sizeof(fann_type));
 	}
 
-	//memcpy(input, allInputs[row], inputSize * sizeof(fann_type));
-	//memcpy(output, allOutputs[row], outputSize * sizeof(fann_type));
-}
+	void FANN_API getTrainingDataLeft(unsigned int row, unsigned int inputSize, unsigned int outputSize, fann_type *input, fann_type *output) {
+		//std::cout << "GTD: row=" << row << ", inp. size=" << inputSize << ", op. size=" << outputSize << std::endl;
+		for (int i = 0; i < inputSize; i++) {
+			input[i] = allInputsLeft[row][i];
+		}
 
-void FANN_API getTrainingDataLeft(unsigned int row, unsigned int inputSize, unsigned int outputSize, fann_type *input, fann_type *output) {
-	//std::cout << "GTD: row=" << row << ", inp. size=" << inputSize << ", op. size=" << outputSize << std::endl;
-	for (int i = 0; i < inputSize; i++) {
-		input[i] = allInputsLeft[row][i];
+		for (int i = 0; i < outputSize; i++) {
+			output[i] = allOutputsLeft[row][i];
+		}
+
+		//memcpy(input, allInputsLeft[row], inputSize * sizeof(fann_type));
+		//memcpy(output, allOutputsLeft[row], outputSize * sizeof(fann_type));
 	}
-
-	for (int i = 0; i < outputSize; i++) {
-		output[i] = allOutputsLeft[row][i];
-	}
-
-	//memcpy(input, allInputsLeft[row], inputSize * sizeof(fann_type));
-	//memcpy(output, allOutputsLeft[row], outputSize * sizeof(fann_type));
 }
 
 Targets::Targets() {}

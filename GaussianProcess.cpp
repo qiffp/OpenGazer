@@ -1,6 +1,7 @@
 #include <numeric>
 
-template <class T> class GaussianProcess {
+template <class T>
+class GaussianProcess {
 public:
 	typedef double (*CovarianceFunction)(const T&, const T&);
 private:
@@ -54,7 +55,8 @@ public:
 	}
 };
 
-template <class T> class MeanAdjustedGaussianProcess {
+template <class T>
+class MeanAdjustedGaussianProcess {
 public:
 	MeanAdjustedGaussianProcess(std::vector<T> const &inputs, std::vector<double> const &targets, typename GaussianProcess<T>::CovarianceFunction covarianceFunction, double noise=0.0) {
 		_mean = std::accumulate(targets.begin(), targets.end(), 0.0) / targets.size();
