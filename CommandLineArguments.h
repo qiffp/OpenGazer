@@ -1,12 +1,5 @@
 #pragma once
 
-struct Command {
-	long frameNumber;
-	std::string commandName;
-
-	Command(long number, std::string name);
-};
-
 struct CommandLineArguments {
 	std::vector<std::string> parameters;
 	std::vector<std::string> options;

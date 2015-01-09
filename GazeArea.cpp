@@ -16,7 +16,6 @@ bool GazeArea::onIdle() {
 	try {
 		MainGazeTracker::instance().process();
 		queue_draw();
-		MainGazeTracker::instance().simulateClicks();
 	}
 	catch (Utils::QuitNow) {
 		MainGazeTracker::instance().cleanUp();

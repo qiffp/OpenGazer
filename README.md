@@ -91,31 +91,19 @@ is about half of the height of the image, and close to the centre of the image. 
 the background light level is reasonably constant across the image.
 2. Learn the necessary command line options by running "./opengazer --help" from terminal:
 
-		Usage:	opengazer --subject=SUBJECT_NAME [--resolution=[480|720]] [--setup=SETUP_FOLDER_NAME] [--headdistance=DISTANCE] [--record=[0|1]] [--overlay=[0|1]] [--input=INPUT_FILE_PATH]
+		Usage:	opengazer --subject=SUBJECT_NAME [--resolution=[480|720|1080]] [--setup=SETUP_FOLDER_NAME] [--headdistance=DISTANCE]
 
 
 		OPTIONS:
 			subject:		Subject's name to be used in the output file name.
-			resolution:		Resolution for the camera. 480 for 640x480 resolution, 720 for 1280x720.
+			resolution:		Resolution for the camera. 480 for 640x480 resolution, 720 for 1280x720, 1080 for 1920x1080.
 			setup:			Experiment setup name and also the folder to read the test and calibration point locations.
 			headdistance:	Subject's head distance in cm to be included in the output file for automatic error calculation purposes.
-			record:			Whether a video of the experiment should be recorded for offline processing purposes.
-			overlay:		Whether target point and estimation pointers are written as an overlay to the recorded video. Should not be used when offline processing is desired on the output video.
-			input:			Input video path in case of offline processing.
 
 
-		SAMPLE USAGES:
-			Basic usage without video recording:
-				./opengazer --subject=johndoe --resolution=720 --setup=std --headdistance=80 --record=0
+		SAMPLE USAGE:
+				./opengazer --subject=johndoe --resolution=720 --setup=std --headdistance=80
 
-			Usage during experiments to enable video recording for offline processing:
-				./opengazer --subject=johndoe --resolution=720 --setup=std --headdistance=80 --record=1
-
-			Usage during offline processing:
-				./opengazer --subject=johndoe --resolution=720 --setup=std --headdistance=80 --record=1 --overlay=1 --input=../outputs/johndoe_std_720_1.avi
-
-			Usage during offline processing with lower resolution:
-				./opengazer --subject=johndoe --resolution=480 --setup=std --headdistance=80 --record=1 --overlay=1 --input=../outputs/johndoe_std_720_1.avi
 3. Initialize the face tracking component by pressing the button "Choose Points".
 4. The next step is calibration.  Remember, in order for this gaze
 tracker to work, you must keep your head absolutely still.  Press

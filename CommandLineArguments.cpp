@@ -1,11 +1,5 @@
-#include "Command.h"
+#include "CommandLineArguments.h"
 #include "utils.h"
-
-Command::Command(long number, std::string name):
-	frameNumber(number),
-	commandName(name)
-{
-}
 
 CommandLineArguments::CommandLineArguments(int argc, char** argv) {
 	for (int i = 1; i < argc; i++) {
@@ -17,6 +11,7 @@ CommandLineArguments::CommandLineArguments(int argc, char** argv) {
 		parameters.push_back(value);
 	}
 }
+
 CommandLineArguments::~CommandLineArguments() {
 	options = std::vector<std::string>();
 	parameters = std::vector<std::string>();
