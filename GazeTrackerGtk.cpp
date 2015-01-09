@@ -7,8 +7,6 @@ GazeTrackerGtk::GazeTrackerGtk():
 	_vbox(false, 0),
 	_buttonBar(true, 0),
 	_calibrateButton("Calibrate"),
-	_loadButton("Load points"),
-	_saveButton("Save points"),
 	_chooseButton("Choose points"),
 	_pauseButton("Pause"),
 	_clearButton("Clear points"),
@@ -36,8 +34,6 @@ GazeTrackerGtk::GazeTrackerGtk():
 		_buttonBar.pack_start(_calibrateButton);
 		_buttonBar.pack_start(_testButton);
 		_buttonBar.pack_start(_pauseButton);
-		_buttonBar.pack_start(_saveButton);
-		_buttonBar.pack_start(_loadButton);
 
 		// Connect buttons
 		MainGazeTracker &gazeTracker = MainGazeTracker::instance();
@@ -45,8 +41,6 @@ GazeTrackerGtk::GazeTrackerGtk():
 		_calibrateButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "calibrate"));
 		_testButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::startTesting));
 		_testButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "test"));
-		_saveButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::savePoints));
-		_loadButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::loadPoints));
 		_chooseButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::choosePoints));
 		_chooseButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "choose"));
 		_pauseButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::pauseOrRepositionHead));
@@ -61,8 +55,6 @@ GazeTrackerGtk::GazeTrackerGtk():
 		_gazeArea.show();
 		_testArea.hide();
 		_calibrateButton.show();
-		//_saveButton.show();
-		//_loadButton.show();
 		_chooseButton.show();
 		_pauseButton.show();
 		_clearButton.show();

@@ -467,10 +467,6 @@ void MainGazeTracker::process() {
 			cvCircle((CvArr *)canvas.get(), cvPoint(estimation.x, estimation.y), 8, cvScalar(255, 0, 0), -1, 8, 0);
 		}
 	}
-
-	if (_autoReload && _frameStoreLoad <= 0 && Application::status != Application::STATUS_PAUSED) {
- 		loadPoints();
-	}
 }
 
 void MainGazeTracker::simulateClicks() {
@@ -580,26 +576,6 @@ void MainGazeTracker::startTesting() {
 
 	frameFunctions.clear();
 	frameFunctions.addChild(&frameFunctions, moving);
-}
-
-void MainGazeTracker::savePoints() {
-	try {
-		trackingSystem->pointTracker.save("pointTracker", "points.txt", videoInput->frame);
-		_autoReload = true;
-	}
-	catch (std::ios_base::failure &e) {
-		std::cout << e.what() << std::endl;
-	}
-}
-
-void MainGazeTracker::loadPoints() {
-	try {
-		trackingSystem->pointTracker.load("pointTracker", "points.txt", videoInput->frame);
-		_autoReload = true;
-	}
-	catch (std::ios_base::failure &e) {
-		std::cout << e.what() << std::endl;
-	}
 }
 
 void MainGazeTracker::choosePoints() {

@@ -25,9 +25,7 @@ MovingTarget::MovingTarget(const int &frameNumber, const std::vector<Point> &poi
 {
 }
 
-MovingTarget::~MovingTarget() {
-	int id = getFrame() / _dwellTime;
-}
+MovingTarget::~MovingTarget() {}
 
 void MovingTarget::process() {
 	if (getPointNumber() != _points.size() && isActive()) {

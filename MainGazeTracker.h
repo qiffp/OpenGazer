@@ -8,7 +8,6 @@
 
 class MainGazeTracker {
 public:
-	//bool isTesting;
 	bool isCalibrationOutputWritten;
 	boost::shared_ptr<TrackingSystem> trackingSystem;
 	MovingTarget *target;
@@ -27,8 +26,6 @@ public:
 	void addExemplar(Point exemplar);
 	void startCalibration();
 	void startTesting();
-	void savePoints();
-	void loadPoints();
 	void choosePoints();
 	void clearPoints();
 	void pauseOrRepositionHead();
