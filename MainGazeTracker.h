@@ -41,6 +41,9 @@ private:
 	int _headDistance;
 	bool _videoOverlays;
 	long _totalFrameCount;
+	int _dwellTime;
+	int _testDwellTime;
+	int _sleepTime;
 
 	MainGazeTracker(int argc, char **argv);
 };

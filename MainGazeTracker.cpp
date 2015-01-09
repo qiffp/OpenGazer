@@ -112,26 +112,25 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 
 	// --dwelltime parameter
 	if (args.getOptionValue("dwelltime").length()) {
-		Application::dwelltimeParameter = atoi(args.getOptionValue("dwelltime").c_str());
+		_dwellTime = atoi(args.getOptionValue("dwelltime").c_str());
 	} else {
-		Application::dwelltimeParameter = 30;
+		_dwellTime = 20;
 	}
 
 	// --testdwelltime parameter
 	if (args.getOptionValue("testdwelltime").length()) {
-		Application::testDwelltimeParameter = atoi(args.getOptionValue("testdwelltime").c_str());
+		_testDwellTime = atoi(args.getOptionValue("testdwelltime").c_str());
 	} else {
-		Application::testDwelltimeParameter = 20;
+		_testDwellTime = 20;
 	}
 
 	// --sleep parameter
 	if (args.getOptionValue("sleep").length()) {
-		Application::sleepParameter = atoi(args.getOptionValue("sleep").c_str());
+		_sleepTime = atoi(args.getOptionValue("sleep").c_str());
 	 } else {
-		Application::sleepParameter = 0;
+		_sleepTime = 0;
 	 }
 
-	// --subject parameter
 	_basePath = Utils::getUniqueFileName(outputFolder, subject + "_" + setup + "_" + args.getOptionValue("resolution"));
 
 	_outputFile = new std::ofstream((_basePath + "_").c_str());
@@ -179,7 +178,7 @@ void MainGazeTracker::process() {
 
 	// Wait a little so that the marker stays on the screen for a longer time
 	if (Application::status == Application::STATUS_CALIBRATING || Application::status == Application::STATUS_TESTING) {
-		usleep(Application::sleepParameter);
+		usleep(_sleepTime);
 	}
 
 	const IplImage *frame = _videoInput->frame;
@@ -348,7 +347,7 @@ void MainGazeTracker::startCalibration() {
 	}
 
 	std::ifstream calfile((_directory + "/calpoints.txt").c_str());
-	boost::shared_ptr<Calibrator> cal(new Calibrator(_frameCount, trackingSystem, scaleByScreen(Calibrator::loadPoints(calfile)), pointer, Application::dwelltimeParameter));
+	boost::shared_ptr<Calibrator> cal(new Calibrator(_frameCount, trackingSystem, scaleByScreen(Calibrator::loadPoints(calfile)), pointer, _dwellTime));
 	_calibrator = cal.operator->();
 
 	frameFunctions.clear();
@@ -371,7 +370,7 @@ void MainGazeTracker::startTesting() {
 	std::ifstream calfile((_directory + "/testpoints.txt").c_str());
 	points = Calibrator::loadPoints(calfile);
 
-	boost::shared_ptr<MovingTarget> moving(new MovingTarget(_frameCount, scaleByScreen(points), pointer, Application::testDwelltimeParameter));
+	boost::shared_ptr<MovingTarget> moving(new MovingTarget(_frameCount, scaleByScreen(points), pointer, _testDwellTime));
 
 	target = moving.operator->();
 

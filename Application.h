@@ -14,9 +14,6 @@ namespace Application {
 
 	extern trackerStatus status;
 	extern bool isTrackerCalibrated;
-	extern int dwelltimeParameter;
-	extern int testDwelltimeParameter;
-	extern int sleepParameter;
 	extern CvRect *faceRectangle;
 
 	std::vector<boost::shared_ptr<AbstractStore> > getStores();
