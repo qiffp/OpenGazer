@@ -9,7 +9,6 @@ GazeTrackerGtk::GazeTrackerGtk():
 	_calibrateButton("Calibrate"),
 	_chooseButton("Choose points"),
 	_pauseButton("Pause"),
-	_clearButton("Clear points"),
 	_testButton("Test")
 {
 	try {
@@ -30,7 +29,6 @@ GazeTrackerGtk::GazeTrackerGtk():
 		_vbox.pack_start(_testArea);
 
 		_buttonBar.pack_start(_chooseButton);
-		_buttonBar.pack_start(_clearButton);
 		_buttonBar.pack_start(_calibrateButton);
 		_buttonBar.pack_start(_testButton);
 		_buttonBar.pack_start(_pauseButton);
@@ -46,8 +44,6 @@ GazeTrackerGtk::GazeTrackerGtk():
 		_pauseButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::pauseOrRepositionHead));
 		_pauseButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "pause"));
 		_pauseButton.signal_clicked().connect(sigc::mem_fun(this, &GazeTrackerGtk::changePauseButtonText));
-		_clearButton.signal_clicked().connect(sigc::mem_fun(gazeTracker, &MainGazeTracker::clearPoints));
-		_clearButton.signal_clicked().connect(sigc::bind<std::string>(sigc::mem_fun(this, &GazeTrackerGtk::toggleView), "clear"));
 
 		// Display view
 		_vbox.show();
@@ -57,7 +53,6 @@ GazeTrackerGtk::GazeTrackerGtk():
 		_calibrateButton.show();
 		_chooseButton.show();
 		_pauseButton.show();
-		_clearButton.show();
 		_testButton.show();
 	}
 	catch (Utils::QuitNow) {
@@ -76,7 +71,7 @@ void GazeTrackerGtk::changePauseButtonText() {
 }
 
 void GazeTrackerGtk::toggleView(std::string button) {
-	if (button == "choose" || button == "pause" || button == "clear") {
+	if (button == "choose" || button == "pause") {
 		_gazeArea.show();
 		_testArea.hide();
 	} else {

@@ -14,7 +14,6 @@ private:
 	Gtk::VBox _vbox;
 	Gtk::HBox _buttonBar;
 	Gtk::Button _calibrateButton;
-	Gtk::Button _clearButton;
 	Gtk::Button _chooseButton;
 	Gtk::Button _pauseButton;
 	Gtk::Button _testButton;

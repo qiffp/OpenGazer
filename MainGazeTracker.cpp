@@ -443,10 +443,6 @@ void MainGazeTracker::choosePoints() {
 	}
 }
 
-void MainGazeTracker::clearPoints() {
-	trackingSystem->pointTracker.clearTrackers();
-}
-
 void MainGazeTracker::pauseOrRepositionHead() {
 	if (Application::status == Application::STATUS_PAUSED) {
 		Application::status = Application::isTrackerCalibrated ? Application::STATUS_CALIBRATED : Application::STATUS_IDLE;

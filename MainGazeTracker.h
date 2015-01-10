@@ -22,7 +22,6 @@ public:
 	void startCalibration();
 	void startTesting();
 	void choosePoints();
-	void clearPoints();
 	void pauseOrRepositionHead();
 	void extractFaceRegionRectangle(IplImage *frame, std::vector<Point> featurePoints);
 
