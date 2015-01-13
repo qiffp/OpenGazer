@@ -15,7 +15,5 @@ namespace Application {
 	extern trackerStatus status;
 	extern bool isTrackerCalibrated;
 	extern CvRect *faceRectangle;
-
-	std::vector<boost::shared_ptr<AbstractStore> > getStores();
 }
 

@@ -3,12 +3,12 @@
 #include "WindowPointer.h"
 
 WindowPointer::WindowPointer(const PointerSpec &pointerSpec):
-	_pointerWindow(pointerSpec)
+	_pointerWindow(pointerSpec),
+	_width(pointerSpec.width),
+	_height(pointerSpec.height),
+	_lastX(0),
+	_lastY(0)
 {
-	_width = pointerSpec.width;
-	_height = pointerSpec.height;
-	_lastX = 0;
-	_lastY = 0;
 	//_pointerWindow.show();
 }
 
@@ -38,8 +38,7 @@ void WindowPointer::setPosition(int x, int y) {
 }
 
 Point WindowPointer::getPosition() {
-	Point pt(_lastX, _lastY);
-	return pt;
+	return Point(_lastX, _lastY);
 }
 
 WindowPointer::PointerSpec::PointerSpec(int width, int height, double red, double green, double blue):

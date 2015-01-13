@@ -7,6 +7,16 @@
 #include "Detection.h"
 
 namespace {
+	std::vector<boost::shared_ptr<AbstractStore> > getStores() {
+		std::vector<boost::shared_ptr<AbstractStore> > stores;
+
+		stores.push_back(boost::shared_ptr<AbstractStore>(new SocketStore()));
+		stores.push_back(boost::shared_ptr<AbstractStore>(new StreamStore(std::cout)));
+		stores.push_back(boost::shared_ptr<AbstractStore>(new WindowStore(WindowPointer::PointerSpec(20, 30, 0, 0, 1), WindowPointer::PointerSpec(20, 20, 0, 1, 1), WindowPointer::PointerSpec(30, 30, 1, 0, 1))));
+
+		return stores;
+	}
+
 	float calculateDistance(CvPoint2D32f pt1, CvPoint2D32f pt2 ) {
 		float dx = pt2.x - pt1.x;
 		float dy = pt2.y - pt1.y;
@@ -63,7 +73,7 @@ MainGazeTracker &MainGazeTracker::instance(int argc, char **argv) {
 
 MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	_frameStoreLoad(-1),
-	_stores(Application::getStores()),
+	_stores(getStores()),
 	_totalFrameCount(0)
 {
 	CommandLineArguments args(argc, argv);
