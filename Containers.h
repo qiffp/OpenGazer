@@ -3,7 +3,7 @@
 #include <boost/shared_ptr.hpp>
 
 #define xForEachActive(iter, container) \
-	for(typeof(container.begin())iter = container.begin(); iter != container.end(); iter++)	\
+	for(typeof(container.begin()) iter = container.begin(); iter != container.end(); iter++)	\
 		if ((*iter)->parent == this)
 
 template <class ParentType, class ChildType>
@@ -11,12 +11,12 @@ class Containee {
 public:
 	ParentType *parent;		/* set to null to request removal */
 
-	Containee(): parent(0) {}
+	Containee(): parent(NULL) {}
 	virtual ~Containee() {}
 
 protected:
 	void detach() {
-		parent = 0;
+		parent = NULL;
 	}
 };
 
@@ -27,14 +27,14 @@ class BaseContainer {
 
 public:
 	void clear() {
-		xForEachActive(iter, objects) {
-			(*iter)->parent = 0;
+		xForEachActive(iter, _objects) {
+			(*iter)->parent = NULL;
 		}
 		removeFinished();
 	}
 
 	static void addChild(ParentType *parent, const ChildPtr &child) {
-		parent->objects.push_back(child);
+		parent->_objects.push_back(child);
 		child->parent = parent;
 		parent->removeFinished();
 	}
@@ -44,10 +44,10 @@ public:
 	}
 
 protected:
-	std::vector<ChildPtr> objects;
+	std::vector<ChildPtr> _objects;
 
 	void removeFinished() {
-		objects.erase(remove_if(objects.begin(), objects.end(), isFinished), objects.end());
+		_objects.erase(remove_if(_objects.begin(), _objects.end(), isFinished), _objects.end());
 	}
 
 private:
@@ -62,7 +62,7 @@ public:
 	virtual ~ProcessContainer() {};
 
 	virtual void process() {
-		xForEachActive(iter, this->objects) {
+		xForEachActive(iter, this->_objects) {
 			(*iter)->process();
 		}
 		this->removeFinished();

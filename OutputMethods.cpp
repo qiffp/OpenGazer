@@ -47,7 +47,7 @@ SocketStore::SocketStore(int port) {
 	_destAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 }
 
-SocketStore::~SocketStore(void) {
+SocketStore::~SocketStore() {
 	close(_mySocket);
 }
 

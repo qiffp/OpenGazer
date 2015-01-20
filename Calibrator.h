@@ -33,7 +33,6 @@ public:
 	int getDwellTime();
 	int getPointFrame();
 	bool isActive();
-	bool isLast();
 
 protected:
 	std::vector<Point> _points;
@@ -47,8 +46,6 @@ private:
 
 class Calibrator: public MovingTarget {
 public:
-	static std::vector<Point> defaultPoints;
-
 	Calibrator(const int &frameNumber, const boost::shared_ptr<TrackingSystem> &trackingSystem, const std::vector<Point> &points, const boost::shared_ptr<WindowPointer> &windowPointer, int dwellTime=20);
 	virtual ~Calibrator();
 	virtual void process();
@@ -57,7 +54,6 @@ public:
 	static std::vector<Point> scaled(const std::vector<Point> &points, int x, int y, double width, double height);
 
 private:
-	static const Point _defaultPointArray[];
 	boost::shared_ptr<TrackingSystem> _trackingSystem;
 	boost::scoped_ptr<FeatureDetector> _averageEye;
 	boost::scoped_ptr<FeatureDetector> _averageEyeLeft;

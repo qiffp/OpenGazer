@@ -35,12 +35,12 @@ namespace Detection {
 
 		CvSize noseSize;
 
-		if (resolution == 720) {
+		if (resolution == 480) {
+			noseSize = cvSize(24, 20);
+		} else if (resolution == 720) {
 			noseSize = cvSize(36, 30);
 		} else if (resolution == 1080) {
 			noseSize = cvSize(54, 45);
-		} else if (resolution == 480) {
-			noseSize = cvSize(24, 20);
 		}
 
 		noseRegionImage = cvCreateImage(cvSize(noseRect.width, noseRect.height), image->depth, image->nChannels);
@@ -101,12 +101,12 @@ namespace Detection {
 
 		CvSize mouthSize;
 
-		if (resolution == 720) {
+		if (resolution == 480) {
+			mouthSize = cvSize(25, 15);
+		} else if (resolution == 720) {
 			mouthSize = cvSize(50, 30);
 		} else if (resolution == 1080) {
 			mouthSize = cvSize(74, 45);
-		} else if (resolution == 480) {
-			mouthSize = cvSize(25, 15);
 		}
 
 		mouthRegionImage = cvCreateImage(cvSize(mouthRect.width, mouthRect.height), image->depth, image->nChannels);
@@ -165,15 +165,15 @@ namespace Detection {
 		CvSize bothEyesSize;
 		CvSize singleEyeSize;
 
-		if (resolution == 720) {
+		if (resolution == 480) {
+			bothEyesSize = cvSize(64, 16);
+			singleEyeSize = cvSize(6, 4);
+		} else if (resolution == 720) {
 			bothEyesSize = cvSize(100, 25);
 			singleEyeSize = cvSize(18, 12);
 		} else if (resolution == 1080) {
 			bothEyesSize = cvSize(150, 38);
 			singleEyeSize = cvSize(27, 18);
-		} else if (resolution == 480) {
-			bothEyesSize = cvSize(64, 16);
-			singleEyeSize = cvSize(6, 4);
 		}
 
 		// Load the face detector and create empty memory storage

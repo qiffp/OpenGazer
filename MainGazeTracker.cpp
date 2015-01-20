@@ -17,13 +17,6 @@ namespace {
 		return stores;
 	}
 
-	float calculateDistance(CvPoint2D32f pt1, CvPoint2D32f pt2 ) {
-		float dx = pt2.x - pt1.x;
-		float dy = pt2.y - pt1.y;
-
-		return cvSqrt((float)(dx * dx + dy * dy));
-	}
-
 	std::vector<Point> scaleByScreen(const std::vector<Point> &points) {
 		int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
 		Gdk::Rectangle rect;

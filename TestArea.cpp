@@ -26,7 +26,6 @@ TestArea::TestArea(TrackerOutput *output):
 	std::cout << "IMAGES CREATED WITH SIZE: " << _areaSize.width << "x" << _areaSize.height << std::endl;
 
 	_lastUpdatedRegion = cvRect(0, 0, rect.get_width(), rect.get_height());
-	_isWindowInitialized = false;
 }
 
 TestArea::~TestArea() {}

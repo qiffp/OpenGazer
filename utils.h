@@ -14,8 +14,6 @@ namespace Utils {
 		for (typeof(container.rbegin()) iter = container.rbegin(); iter != container.rend(); iter++)
 
 	struct QuitNow: public std::exception {
-		using std::exception::what;
-
 		QuitNow() { }
 		virtual ~QuitNow() throw() { }
 		virtual const char* what() throw() {
@@ -51,14 +49,6 @@ namespace Utils {
 
 		return in;
 	}
-
-	template <class T>
-	T teeFunction(T source, char *prefix, char *postfix="\n") {
-		std::cout << prefix << source << postfix;
-		return source;
-	}
-
-	#define debugTee(x) teeFunction(x, #x ": ")
 
 	template <class T>
 	void saveVector(CvFileStorage *out, const char *name, std::vector<T> &vec) {
@@ -99,60 +89,7 @@ namespace Utils {
 		}
 	}
 
-	class ConstancyDetector {
-	public:
-		ConstancyDetector(int maxCounter):
-			_value(-1),
-			_counter(0),
-			_maxCounter(maxCounter)
-		{
-		}
-
-		bool isStable() {
-			return _counter >= _maxCounter;
-		}
-
-		bool isStableExactly() {
-			return _counter == _maxCounter;
-		}
-
-		bool observe(int newValue) {
-			if (newValue != _value || newValue < 0) {
-				_counter = 0;
-			} else {
-				_counter++;
-			}
-
-			_value = newValue;
-			return isStable();
-		}
-
-		void reset() {
-			_counter = 0;
-			_value = -1;
-		}
-
-	private:
-		int _value;
-		int _counter;
-		int _maxCounter;
-	};
-
 	// #define output(X) { std::cout << #X " = " << X << std::endl; }
-
-	template <class T>
-	int maxAbsIndex(T const &vec, int size) {
-		int maxIndex = 0;
-
-		for (int i = 0; i < size; i++) {
-			if (fabs(vec[i]) > fabs(vec[maxIndex])) {
-				maxIndex = i;
-			}
-		}
-
-		return maxIndex;
-	}
-
 
 	boost::shared_ptr<IplImage> createImage(const CvSize &size, int depth, int channels);
 	void releaseImage(IplImage *image);

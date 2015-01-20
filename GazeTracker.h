@@ -51,7 +51,7 @@ class GazeTracker {
 
 public:
 	TrackerOutput output;
-	std::ostream* outputFile;
+	std::ostream *outputFile;
 
 	GazeTracker();
 	bool isActive();
@@ -62,14 +62,11 @@ public:
 	// Neural network
 	void addSampleToNN(Point point, const IplImage *eyeFloat, const IplImage *eyeGrey);
 	void addSampleToNNLeft(Point point, const IplImage *eyeFloat, const IplImage *eyeGrey);
-	void trainNN();
 
 	// Calibration error removal
 	void removeCalibrationError(Point &estimate);
 	void boundToScreenCoordinates(Point &estimate);
-	void checkErrorCorrection();
 
-	void draw(IplImage *canvas, int eyeDX, int eyeDY);
 	void save();
 	void save(CvFileStorage *out, const char *name);
 	void load();
@@ -78,8 +75,6 @@ public:
 	void updateLeft(const IplImage *image, const IplImage *eyeGrey);
 	Point getTarget(int id);
 	int getTargetId(Point point);
-	void calculateTrainingErrors();
-	void printTrainingErrors();
 
 private:
 	boost::scoped_ptr<ImProcess> _gaussianProcessX;

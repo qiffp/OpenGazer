@@ -25,30 +25,30 @@ Point::Point(CvPoint const &point):
 }
 
 double Point::distance(Point other) const {
-    return fabs(other.x - x) + fabs(other.y - y);
+	return fabs(other.x - x) + fabs(other.y - y);
 }
 
 int Point::closestPoint(const std::vector<Point> &points) const {
-    if (points.empty()) {
+	if (points.empty()) {
 		return -1;
 	}
 
 	std::vector<double> distances(points.size());
-    transform(points.begin(), points.end(), distances.begin(), sigc::mem_fun(*this, &Point::distance));
+	transform(points.begin(), points.end(), distances.begin(), sigc::mem_fun(*this, &Point::distance));
 
-    return min_element(distances.begin(), distances.end()) - distances.begin();
+	return min_element(distances.begin(), distances.end()) - distances.begin();
 }
 
 void Point::save(CvFileStorage *out, const char *name) const {
-    cvStartWriteStruct(out, name, CV_NODE_MAP);
-    cvWriteReal(out, "x", x);
-    cvWriteReal(out, "y", y);
-    cvEndWriteStruct(out);
+	cvStartWriteStruct(out, name, CV_NODE_MAP);
+	cvWriteReal(out, "x", x);
+	cvWriteReal(out, "y", y);
+	cvEndWriteStruct(out);
 }
 
 void Point::load(CvFileStorage *in, CvFileNode *node) {
-    x = cvReadRealByName(in, node, "x");
-    y = cvReadRealByName(in, node, "y");
+	x = cvReadRealByName(in, node, "x");
+	y = cvReadRealByName(in, node, "y");
 }
 
 CvPoint Point::cvPoint() const {
@@ -56,39 +56,39 @@ CvPoint Point::cvPoint() const {
 }
 
 CvPoint2D32f Point::cvPoint32() const {
-    return cvPoint2D32f(x, y);
+	return cvPoint2D32f(x, y);
 }
 
 Point Point::operator+(const Point &other) const {
-    return Point(x + other.x, y + other.y);
+	return Point(x + other.x, y + other.y);
 }
 
 Point Point::operator-(const Point &other) const {
-    return Point(x - other.x, y - other.y);
+	return Point(x - other.x, y - other.y);
 }
 
 void Point::operator=(CvPoint2D32f const &point) {
-    x = point.x;
-    y = point.y;
+	x = point.x;
+	y = point.y;
 }
 
 void Point::operator=(CvPoint const &point) {
-    x = point.x;
-    y = point.y;
+	x = point.x;
+	y = point.y;
 }
 
 std::ostream &operator<< (std::ostream &out, const Point &p) {
-    out << p.x << " " << p.y << std::endl;
-    return out;
+	out << p.x << " " << p.y << std::endl;
+	return out;
 }
 
 std::istream &operator>> (std::istream &in, Point &p) {
-    in >> p.x >> p.y;
+	in >> p.x >> p.y;
 	return in;
 }
 
 void convert(const Point &point, CvPoint2D32f &p) {
-    p.x = point.x;
-    p.y = point.y;
+	p.x = point.x;
+	p.y = point.y;
 }
 

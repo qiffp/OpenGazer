@@ -65,9 +65,7 @@ Targets::Targets(std::vector<Point> const &targets):
 
 int Targets::getCurrentTarget(Point point) {
 	std::vector<double> distances(targets.size());
-	//debugTee(targets);
 	transform(targets.begin(), targets.end(), distances.begin(), sigc::mem_fun(point, &Point::distance));
-	//debugTee(distances);
 	return min_element(distances.begin(), distances.end()) - distances.begin();
 	//for (int i = 0; i < targets.size(); i++) {
 	//	if (point.distance(targets[i]) < 30) {
@@ -241,32 +239,6 @@ void GazeTracker::addSampleToNNLeft(Point point, const IplImage *eyeFloat, const
 	//}
 }
 
-void GazeTracker::trainNN() {
-	std::cout << "Getting data" << std::endl;
-	struct fann_train_data *data = fann_create_train_from_callback(_inputCount, _nnEyeWidth * _nnEyeHeight, 2, getTrainingData);
-	//fann_save_train(data, "data.txt");
-
-	std::cout << "Getting left data" << std::endl;
-	struct fann_train_data *dataLeft = fann_create_train_from_callback(_inputCount, _nnEyeWidth * _nnEyeHeight, 2, getTrainingDataLeft);
-	//fann_save_train(dataLeft, "dataLeft.txt");
-
-	fann_set_training_algorithm(_ANN, FANN_TRAIN_RPROP);
-	fann_set_learning_rate(_ANN, 0.75);
-	fann_set_training_algorithm(_ANNLeft, FANN_TRAIN_RPROP);
-	fann_set_learning_rate(_ANNLeft, 0.75);
-
-	std::cout << "Training" << std::endl;
-	fann_train_on_data(_ANN, data, 200, 20, 0.01);
-
-	std::cout << "Training left" << std::endl;
-	fann_train_on_data(_ANNLeft, dataLeft, 200, 20, 0.01);
-
-	double mse = fann_get_MSE(_ANN);
-	double mseLeft = fann_get_MSE(_ANNLeft);
-
-	std::cout << "MSE: " << mse << ", MSE left: " << mseLeft << std::endl;
-}
-
 void GazeTracker::removeCalibrationError(Point &estimate) {
 	double x[1][2];
 	double output[1];
@@ -333,19 +305,6 @@ void GazeTracker::boundToScreenCoordinates(Point &estimate) {
 	if (estimate.y >= monitorGeometry.get_y() + monitorGeometry.get_height()) {
 		estimate.y = monitorGeometry.get_y() + monitorGeometry.get_height();
 	}
-}
-
-void GazeTracker::checkErrorCorrection() {
-}
-
-void GazeTracker::draw(IplImage *destImage, int eyeDX, int eyeDY) {
-//	for (int i = 0; i < _calTargets.size(); i++) {
-//		Point p = _calTargets[i].point;
-//		cvSetImageROI(destImage, cvRect((int)p.x - eyeDX, (int)p.y - eyeDY, 2 * eyeDX, 2 * eyeDY));
-//		cvCvtColor(_calTargets[i].origImage, destImage, CV_GRAY2RGB);
-//		cvRectangle(destImage, cvPoint(0, 0), cvPoint(2 * eyeDX - 1, 2 * eyeDY - 1), CV_RGB(255, 0, 255));
-//	}
-//	cvResetImageROI(destImage);
 }
 
 void GazeTracker::save() {
@@ -430,136 +389,6 @@ Point GazeTracker::getTarget(int id) {
 int GazeTracker::getTargetId(Point point) {
 	return _targets->getCurrentTarget(point);
 }
-
-void GazeTracker::calculateTrainingErrors() {
-	int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-	Gdk::Rectangle monitorGeometry;
-	Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-
-	// Geometry of main monitor
-	screen->get_monitor_geometry(numMonitors - 1, monitorGeometry);
-
-	std::vector<Point> points = getSubVector(_calTargets, &CalTarget::point);
-
-	//std::cout << "Input count: " << _inputCount;
-	//std::cout << ", Target size: " << _calTargets.size() << std::endl;
-
-	for (int i = 0; i < _calTargets.size(); i++) {
-		double xTotal = 0;
-		double yTotal = 0;
-		double sampleCount = 0;
-
-		//std::cout << points[i].x << ", " << points[i].y << " x " << allOutputCoords[j][0] << ", " << allOutputCoords[j][1] << std::endl;
-
-		int j = 0;
-		while (j < _inputCount && points[i].x == allOutputCoords[j][0] && points[i].y == allOutputCoords[j][1]) {
-			double xEstimate = (_gaussianProcessX->getmean(Utils::SharedImage(allImages[j], &ignore)) + _gaussianProcessXLeft->getmean(Utils::SharedImage(allImagesLeft[j], &ignore))) / 2;
-			double yEstimate = (_gaussianProcessY->getmean(Utils::SharedImage(allImages[j], &ignore)) + _gaussianProcessYLeft->getmean(Utils::SharedImage(allImagesLeft[j], &ignore))) / 2;
-
-			//std::cout << "i, j = (" << i << ", " << j << "), est: " << xEstimate << "(" << _gaussianProcessX->getmean(SharedImage(allImages[j], &ignore)) << "," << _gaussianProcessXLeft->getmean(SharedImage(allImagesLeft[j], &ignore)) << ")" << ", " << yEstimate << "(" << _gaussianProcessY->getmean(SharedImage(allImages[j], &ignore)) << "," << _gaussianProcessYLeft->getmean(SharedImage(allImagesLeft[j], &ignore)) << ")" << std::endl;
-
-			xTotal += xEstimate;
-			yTotal += yEstimate;
-			sampleCount++;
-			j++;
-		}
-
-		xTotal /= sampleCount;
-		yTotal /= sampleCount;
-
-		*outputFile << "TARGET: (" << _calTargets[i].point.x << "\t, " << _calTargets[i].point.y << "\t),\tESTIMATE: (" << xTotal << "\t, " << yTotal << ")" << std::endl;
-		//std::cout << "TARGET: (" << _calTargets[i].point.x << "\t, " << _calTargets[i].point.y << "\t),\tESTIMATE: (" << xTotal << "\t, " << yTotal << "),\tDIFF: (" << fabs(_calTargets[i].point.x- x_total) << "\t, " << fabs(_calTargets[i].point.y - y_total) << ")" << std::endl;
-
-		// Calibration error removal
-		_xv[i][0] = xTotal;		// Source
-		_xv[i][1] = yTotal;
-
-		// Targets
-		_fvX[i] = _calTargets[i].point.x;
-		_fvY[i] = _calTargets[i].point.y;
-		_sigv[i] = 0;
-
-		int targetId = getTargetId(Point(xTotal, yTotal));
-
-		if (targetId != i) {
-			std::cout << "Target id is not the expected one!! (Expected: "<< i << ", Current: " << targetId << ")" << std::endl;
-		}
-	}
-
-	// Add the corners of the monitor as 4 extra data points. This helps the correction for points that are near the edge of monitor
-	_xv[_calTargets.size()][0] = monitorGeometry.get_x();
-	_xv[_calTargets.size()][1] = monitorGeometry.get_y();
-	_fvX[_calTargets.size()] = monitorGeometry.get_x()-40;
-	_fvY[_calTargets.size()] = monitorGeometry.get_y()-40;
-
-	_xv[_calTargets.size()+1][0] = monitorGeometry.get_x() + monitorGeometry.get_width();
-	_xv[_calTargets.size()+1][1] = monitorGeometry.get_y();
-	_fvX[_calTargets.size()+1] = monitorGeometry.get_x() + monitorGeometry.get_width() + 40;
-	_fvY[_calTargets.size()+1] = monitorGeometry.get_y() - 40;
-
-	_xv[_calTargets.size()+2][0] = monitorGeometry.get_x() + monitorGeometry.get_width();
-	_xv[_calTargets.size()+2][1] = monitorGeometry.get_y() + monitorGeometry.get_height();
-	_fvX[_calTargets.size()+2] = monitorGeometry.get_x() + monitorGeometry.get_width() + 40;
-	_fvY[_calTargets.size()+2] = monitorGeometry.get_y() + monitorGeometry.get_height() + 40;
-
-	_xv[_calTargets.size()+3][0] = monitorGeometry.get_x();
-	_xv[_calTargets.size()+3][1] = monitorGeometry.get_y() + monitorGeometry.get_height();
-	_fvX[_calTargets.size()+3] = monitorGeometry.get_x() - 40;
-	_fvY[_calTargets.size()+3] = monitorGeometry.get_y() + monitorGeometry.get_height() + 40;
-
-	int pointCount = _calTargets.size() + 4;
-	int N = pointCount;
-	N = binomialInv(N, 2) - 1;
-
-	// Find the best beta and gamma parameters for interpolation
-	mirBetaGamma(1, 2, pointCount, (double *)_xv, _fvX, _sigv, 0, NULL, NULL, NULL, N, 2, 50.0, &_betaX, &_gammaX);
-	mirBetaGamma(1, 2, pointCount, (double *)_xv, _fvY, _sigv, 0, NULL, NULL, NULL, N, 2, 50.0, &_betaY, &_gammaY);
-
-	*outputFile << std::endl << std::endl;
-	std::cout << std::endl << std::endl;
-
-	outputFile->flush();
-
-	std::cout << "ERROR CALCULATION FINISHED. BETA = " << _betaX << ", " << _betaY << ", GAMMA IS " << _gammaX << ", " << _gammaY << std::endl;
-	for (int i = 0; i < pointCount; i++) {
-		std::cout << _xv[i][0] << ", " << _xv[i][1] << std::endl;
-	}
-
-	//checkErrorCorrection();
-}
-
-void GazeTracker::printTrainingErrors() {
-	int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-	Gdk::Rectangle monitorGeometry;
-	Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-
-	//return;
-
-	// Geometry of main monitorGazeTracker.cpp:233:136: error: expected ‘;’ before string constant
-
-	screen->get_monitor_geometry(numMonitors - 1, monitorGeometry);
-
-	std::vector<Point> points = getSubVector(_calTargets, &CalTarget::point);
-
-	//std::cout << "PRINTING TRAINING ESTIMATIONS: " << std::endl;
-	//for (int i = 0; i < 15; i++) {
-	//	int imageIndex = 0;
-	//	int j = 0;
-	//	while (j < inputCount && points[i].x == allOutputCoords[j][0] && points[i].y == allOutputCoords[j][1]) {
-	//		std::cout << "X, Y: '" << _gaussianProcessX->getmean(SharedImage(allImages[j], &ignore)) << ", " << _gaussianProcessY->getmean(SharedImage(allImages[j], &ignore)) << "' and '" << _gaussianProcessXLeft->getmean(SharedImage(allImagesLeft[j], &ignore)) << ", " << _gaussianProcessYLeft->getmean(SharedImage(allImagesLeft[j], &ignore)) << "' " << std::endl;
-	//		image_index++;
-	//		j++;
-	//	}
-	//}
-}
-
-
-//void GazeTracker::updateExemplar(int id, const IplImage *eyeFloat, const IplImage *eyeGrey) {
-//	cvConvertScale(eyeGrey, _calTargets[id].origImage.get());
-//	cvAdd(_calTargets[id].image.get(), eyeFloat, _calTargets[id].image.get());
-//	cvConvertScale(_calTargets[id].image.get(), _calTargets[id].image.get(), 0.5);
-//	updateGaussianProcesses();
-//}
 
 double GazeTracker::imageDistance(const IplImage *image1, const IplImage *image2) {
 	double norm = cvNorm(image1, image2, CV_L2);

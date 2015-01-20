@@ -50,10 +50,6 @@ bool MovingTarget::isActive() {
 	return getPointNumber() < (int)_points.size();
 }
 
-bool MovingTarget::isLast() {
-	return getPointNumber() == ((int)_points.size()) - 1;
-}
-
 int MovingTarget::getPointNumber() {
 	return getFrame() / _dwellTime;
 }
@@ -69,24 +65,6 @@ int MovingTarget::getDwellTime() {
 Point MovingTarget::getActivePoint() {
 	return _points[getPointNumber()];
 }
-
-const Point Calibrator::_defaultPointArray[] = {
-	Point(0.5, 0.5),
-	Point(0.1, 0.5),
-	Point(0.9, 0.5),
-	Point(0.5, 0.1),
-	Point(0.5, 0.9),
-	Point(0.1, 0.1),
-	Point(0.1, 0.9),
-	Point(0.9, 0.9),
-	Point(0.9, 0.1),
-	Point(0.3, 0.3),
-	Point(0.3, 0.7),
-	Point(0.7, 0.7),
-	Point(0.7, 0.3)
-};
-
-std::vector<Point> Calibrator::defaultPoints(_defaultPointArray, _defaultPointArray + (sizeof(_defaultPointArray) / sizeof(_defaultPointArray[0])));
 
 Calibrator::Calibrator(const int &frameNumber, const boost::shared_ptr<TrackingSystem> &trackingSystem, const std::vector<Point> &points,  const boost::shared_ptr<WindowPointer> &windowPointer, int dwellTime):
 	MovingTarget(frameNumber, points, windowPointer, dwellTime),
@@ -128,7 +106,7 @@ void Calibrator::process() {
 					dummy++;
 				//}
 			} else {
-				std::cout << "Skipped adding sample!!!!" << std::endl;
+				std::cout << "Blinking - did not add sample" << std::endl;
 			}
 		}
 
@@ -140,16 +118,7 @@ void Calibrator::process() {
 			if(id == _points.size() - 1) {
 				Application::status = Application::STATUS_CALIBRATED;
 				Application::isTrackerCalibrated = true;
-
-				//_trackingSystem->gazeTracker.trainNN();
-				//_trackingSystem->gazeTracker.calculateTrainingErrors();
 			}
-
-			// If we have processed the last target
-			// Calculate training error and output on screen
-			//if (isLast()) {
-			//	_trackingSystem->gazeTracker.calculateTrainingErrors();
-			//}
 		}
 	}
 	MovingTarget::process();

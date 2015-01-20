@@ -8,7 +8,6 @@ public:
 	virtual ~TestArea();
 	void showContents();
 	void clearLastUpdatedRegion();
-	void displayImageCentered(IplImage *image);
 
 private:
 	TrackerOutput *_trackerOutput;
@@ -16,7 +15,6 @@ private:
 	IplImage *_target;
 	IplImage *_clearingImage;
 	CvRect _lastUpdatedRegion;
-	bool _isWindowInitialized;
 
 	bool onIdle();
 

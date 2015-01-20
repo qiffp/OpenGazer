@@ -24,14 +24,6 @@ static double mean(std::vector<Point> const &vec, double (Point::*prop)) {
 	return sum / vec.size();
 }
 
-static void predict(double xOrig, double yOrig, double a, double b, double c, double d, double depth, double &xNew, double &yNew) {
-	double A = -a * xOrig - b * yOrig;
-	double B = depth - b * xOrig + a * yOrig;
-
-	xNew = (c * A + d * B) / (d * d + c * c);
-	yNew = (d * A - c * B) / (d * d + c * c);
-}
-
 static Point predictPoint(Point p, double depth, double dMeanX, double dMeanY, double rotX, double rotY, double atX, double atY) {
 	Point p2 (p.x * atX - p.y * atY, p.x * atY + p.y * atX);
 
