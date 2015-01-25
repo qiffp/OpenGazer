@@ -15,8 +15,6 @@ public:
 
 protected:
 	int getFrame();
-
-private:
 	const int &_frameNumber;
 	int _startFrame;
 };
@@ -37,11 +35,9 @@ public:
 protected:
 	std::vector<Point> _points;
 	const int _dwellTime;
+	boost::shared_ptr<WindowPointer> _windowPointer;
 
 	int getPointNumber();
-
-private:
-	boost::shared_ptr<WindowPointer> _windowPointer;
 };
 
 class Calibrator: public MovingTarget {

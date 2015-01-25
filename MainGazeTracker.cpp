@@ -117,7 +117,7 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	if (args.getOptionValue("dwelltime").length()) {
 		_dwellTime = atoi(args.getOptionValue("dwelltime").c_str());
 	} else {
-		_dwellTime = 20;
+		_dwellTime = 30;
 	}
 
 	// --testdwelltime parameter

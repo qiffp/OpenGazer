@@ -17,7 +17,7 @@ private:
 	bool onIdle();
 
 	// Gtk::DrawingArea
-	bool on_expose_event(GdkEventExpose *event);
-	bool on_button_press_event(GdkEventButton *event);
-	bool on_button_release_event(GdkEventButton *event);
+	virtual bool on_expose_event(GdkEventExpose *event);
+	virtual bool on_button_press_event(GdkEventButton *event);
+	virtual bool on_button_release_event(GdkEventButton *event);
 };

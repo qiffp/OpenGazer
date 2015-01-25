@@ -129,7 +129,7 @@ void TestArea::showContents() {
 			estimationXRight = (1 - alpha) * _trackerOutput->gazePoint.x + alpha * estimationXRight;
 			estimationYRight = (1 - alpha) * _trackerOutput->gazePoint.y + alpha * estimationYRight;
 			estimationXLeft = (1 - alpha) * _trackerOutput->gazePointLeft.x + alpha * estimationXLeft;
-			estimationYLeft = (1 - alpha) * _trackerOutput->gazePointLeft.x + alpha * estimationYLeft;
+			estimationYLeft = (1 - alpha) * _trackerOutput->gazePointLeft.y + alpha * estimationYLeft;
 
 			int estimationX = (estimationXRight + estimationXLeft) / 2;
 			int estimationY = (estimationYRight + estimationYLeft) / 2;
@@ -151,6 +151,22 @@ void TestArea::showContents() {
 
 			if (bounds.height + bounds.y > _areaSize.height) {
 				bounds.height = _areaSize.height - bounds.y;
+			}
+
+			if (estimationX <= 0) {
+				estimationX = 1;
+			}
+
+			if (estimationY <= 0) {
+				estimationY = 1;
+			}
+
+			if (estimationX >= _areaSize.width) {
+				estimationX = _areaSize.width - 1;
+			}
+
+			if (estimationY >= _areaSize.height) {
+				estimationY = _areaSize.height - 1;
 			}
 
 			clearLastUpdatedRegion();
@@ -206,19 +222,6 @@ void TestArea::clearLastUpdatedRegion() {
 bool TestArea::onIdle() {
 	showContents();
 	//queue_draw();
-	return true;
-}
-
-bool TestArea::on_expose_event(GdkEventExpose *event) {
-	//showContents();
-	return true;
-}
-
-bool TestArea::on_button_press_event(GdkEventButton *event) {
-	return true;
-}
-
-bool TestArea::on_button_release_event(GdkEventButton *event) {
 	return true;
 }
 
