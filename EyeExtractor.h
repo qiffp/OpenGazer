@@ -1,30 +1,30 @@
 #pragma once
-#include "utils.h"
+
 #include "PointTracker.h"
 #include "BlinkDetector.h"
 
-
 class EyeExtractor {
-    const PointTracker &tracker; /* dangerous */
-    scoped_ptr<IplImage> eyefloat2;
-    scoped_ptr<IplImage> eyefloat2_left;
-	BlinkDetector blinkdet;
-	BlinkDetector blinkdet_left;
-	bool blink;
-    void processEye(void);
-
 public:
-    static const int eyedx;
-    static const int eyedy;
-    static const CvSize eyesize;
+	static const int eyeDX;
+	static const int eyeDY;
+	static const cv::Size eyeSize;
 
-    scoped_ptr<IplImage> eyegrey, eyefloat, eyeimage;
-    scoped_ptr<IplImage> eyegrey_left, eyefloat_left, eyeimage_left;
-
-    EyeExtractor(const PointTracker &tracker);
-    void extractEye(const IplImage *origimage) throw (TrackingException);
-    void extractLeftEye(const IplImage *origimage) throw (TrackingException);
+	boost::scoped_ptr<cv::Mat> eyeGrey, eyeFloat, eyeImage;
+	boost::scoped_ptr<cv::Mat> eyeGreyLeft, eyeFloatLeft, eyeImageLeft;
+	
+	EyeExtractor(const PointTracker &pointTracker);
+	~EyeExtractor();
+	void extractEyes(const cv::Mat originalImage);
 	bool isBlinking();
-    ~EyeExtractor(void);
+
+private:
+	const PointTracker &_pointTracker; /* dangerous */
+	BlinkDetector _blinkDetector;
+	BlinkDetector _blinkDetectorLeft;
+	bool _isBlinking;
+
+	void extractEye(const cv::Mat originalImage) throw (TrackingException);
+	void extractEyeLeft(const cv::Mat originalImage) throw (TrackingException);
+	void processEyes();
 };
 
