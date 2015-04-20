@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "Detection.h"
+#include "Application.h"
 #include "utils.h"
 
 namespace {
@@ -17,6 +18,24 @@ namespace {
 
 		return corners;
 	}
+
+	void checkRectSize(const cv::Mat &image, cv::Rect *rect) {
+		if (rect->x < 0) {
+			rect->x = 0;
+		}
+
+		if (rect->y < 0) {
+			rect->y = 0;
+		}
+
+		if (rect->x + rect->width >= image.size().width) {
+			rect->width = image.size().width - rect->x - 1;
+		}
+
+		if (rect->y + rect->height >= image.size().height) {
+			rect->height = image.size().height - rect->y - 1;
+		}
+	}
 }
 
 namespace Detection {
@@ -25,6 +44,79 @@ namespace Detection {
 	cv::CascadeClassifier noseCascade;
 	cv::CascadeClassifier mouthCascade;
 
+
+	void choosePoints() {
+		try {
+			Point eyes[2];
+			Point nose[2];
+			Point mouth[2];
+			Point eyebrows[2];
+
+			std::cout << "Detecting eye corners" << std::endl;
+			
+			if(!Detection::detectEyeCorners(Application::Components::videoInput->frame, Application::Components::videoInput->getResolution(), eyes)) {
+				std::cout << "EYE CORNERS NOT DETECTED" << std::endl;
+				return;
+			}
+
+			std::cout << "Detecting nose corners" << std::endl;
+			cv::Rect noseRect = cv::Rect(eyes[0].x, eyes[0].y, fabs(eyes[0].x - eyes[1].x), fabs(eyes[0].x - eyes[1].x));
+			checkRectSize(Application::Components::videoInput->frame, &noseRect);
+			std::cout << "Nose rect: " << noseRect.x << ", " << noseRect.y << " - " << noseRect.width << ", " << noseRect.height << std::endl;
+			
+			if (!Detection::detectNose(Application::Components::videoInput->frame, Application::Components::videoInput->getResolution(), noseRect, nose)) {
+				std::cout << "NO NOSE" << std::endl;
+				return;
+			}
+
+			std::cout << "Detecting mouth corners" << std::endl;
+			cv::Rect mouthRect = cv::Rect(eyes[0].x, nose[0].y, fabs(eyes[0].x - eyes[1].x), 0.8 * fabs(eyes[0].x - eyes[1].x));
+			checkRectSize(Application::Components::videoInput->frame, &mouthRect);
+
+			if (!Detection::detectMouth(Application::Components::videoInput->frame, Application::Components::videoInput->getResolution(), mouthRect, mouth)) {
+				std::cout << "NO MOUTH" << std::endl;
+				return;
+			}
+
+			std::cout << "Detecting eyebrow corners" << std::endl;
+			cv::Rect eyebrowRect = cv::Rect(eyes[0].x + fabs(eyes[0].x - eyes[1].x) * 0.25, eyes[0].y - fabs(eyes[0].x - eyes[1].x) * 0.40, fabs(eyes[0].x - eyes[1].x) * 0.5, fabs(eyes[0].x - eyes[1].x) * 0.25);
+			checkRectSize(Application::Components::videoInput->frame, &eyebrowRect);
+			Detection::detectEyebrowCorners(Application::Components::videoInput->frame, Application::Components::videoInput->getResolution(), eyebrowRect, eyebrows);
+
+			//cvSaveImage("cframe.jpg", Application::Components::videoInput->frame);
+
+			std::cout << "Adding trackers" << std::endl;
+			Application::Components::pointTracker->clearTrackers();
+
+			Application::Components::pointTracker->addTracker(eyes[0]);
+			Application::Components::pointTracker->addTracker(eyes[1]);
+			Application::Components::pointTracker->addTracker(nose[0]);
+			Application::Components::pointTracker->addTracker(nose[1]);
+			Application::Components::pointTracker->addTracker(mouth[0]);
+			Application::Components::pointTracker->addTracker(mouth[1]);
+			Application::Components::pointTracker->addTracker(eyebrows[0]);
+			Application::Components::pointTracker->addTracker(eyebrows[1]);
+
+			std::cout << "EYES: " << eyes[0] << " + " << eyes[1] << std::endl;
+			std::cout << "NOSE: " << nose[0] << " + " << nose[1] << std::endl;
+			std::cout << "MOUTH: " << mouth[0] << " + " << mouth[1] << std::endl;
+			std::cout << "EYEBROWS: " << eyebrows[0] << " + " << eyebrows[1] << std::endl;
+
+			// Save point selection image
+			Application::Components::pointTracker->saveImage();
+
+			// Calculate the area containing the face
+			//extractFaceRegionRectangle(Application::Components::pointTracker->getPoints(&PointTracker::lastPoints, true));
+			//Application::Components::pointTracker->normalizeOriginalGrey();
+		}
+		catch (std::ios_base::failure &e) {
+			std::cout << e.what() << std::endl;
+		}
+		catch (std::exception &e) {
+			std::cout << e.what() << std::endl;
+		}
+	}
+	
 	void loadCascades() {
 		if(/*!faceCascade.load("haarcascade_frontalface_alt.xml") || */
 			!eyeCascade.load("DetectorEyes.xml") || 
@@ -33,6 +125,8 @@ namespace Detection {
 	        std::cout << "ERROR: Could not load cascade classifiers!" << std::endl;
 			exit(1);
 		}
+		
+		std::cout << "Detection cascades loaded!" << std::endl;
 	}
 	
 	bool detectLargestObject(cv::CascadeClassifier cascade, cv::Mat image, cv::Rect &largestObject, double scaleFactor, int minNeighbors, int flags, cv::Size minSize) {
@@ -44,6 +138,9 @@ namespace Detection {
 		largestObject.height = 0;
 		
 		cascade.detectMultiScale(image, results, scaleFactor, minNeighbors, flags, minSize);
+		
+		
+		std::cout << "detectLargestObject(): results size: " << results.size() << std::endl;
 		
 		// Save the largest object
 		if (results.size() > 0) {
@@ -121,7 +218,7 @@ namespace Detection {
 		return true;
 	}
 
-	void detectEyeCorners(cv::Mat image, double resolution, Point points[]) {
+	bool detectEyeCorners(cv::Mat image, double resolution, Point points[]) {
 		cv::Rect largestObject(0, 0, 0, 0);
 		double scaleFactor = 1.1;
 		int minNeighbors = 10;
@@ -136,7 +233,8 @@ namespace Detection {
 		
 		// Detect objects
 		if(!detectLargestObject(eyeCascade, image, largestObject, scaleFactor, minNeighbors, CV_HAAR_DO_CANNY_PRUNING, minSize)) {
-			return;
+			std::cout << "Detect largest object (for eyes) failed!!" << std::endl;
+			return false;
 		}
 
 		std::cout << "Resolution: " << resolution << ", both eye reg.:" << largestObject.width << ", " << largestObject.height << std::endl;
@@ -196,6 +294,7 @@ namespace Detection {
 
 		//cv::circle(image, cv::Point(points[0].x, points[0].y), 3, CV_RGB(0,255,0), -1, 8, 0);
 		//cv::circle(image, cv::Point(points[1].x, points[1].y), 3, CV_RGB(0,255,0), -1, 8, 0);
+		return true;
 	}
 
 	void detectEyebrowCorners(cv::Mat image, double resolution, cv::Rect eyebrowRect, Point points[]) {

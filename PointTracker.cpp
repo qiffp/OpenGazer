@@ -1,5 +1,6 @@
 #include <opencv/highgui.h>
 #include <fstream>
+#include <math.h>
 
 #include "PointTracker.h"
 #include "Application.h"
@@ -60,12 +61,16 @@ int PointTracker::getClosestTracker(const Point &point) {
 	return point.closestPoint(points);
 }
 
-void PointTracker::track(const cv::Mat &frame, int pyramidDepth) {
+void PointTracker::process() {
+	track();
+}
+
+void PointTracker::track() {
 	try {
 		assert(lastPoints.size() == currentPoints.size());
 		assert(origPoints.size() == currentPoints.size());
 		status.resize(currentPoints.size());
-		cvtColor(frame, _grey, CV_BGR2GRAY);
+		cvtColor(Application::Components::videoInput->frame, _grey, CV_BGR2GRAY);
 
 /*
 		if (Application::faceRectangle != NULL) {
@@ -90,7 +95,7 @@ void PointTracker::track(const cv::Mat &frame, int pyramidDepth) {
 				origPoints, currentPoints, 
 				status, err, 
 				cv::Size(_winSize,_winSize), 
-				pyramidDepth * 3, 
+				_pyramidDepth * 3, 
 				cv::TermCriteria(CV_TERMCRIT_EPS, 20, 0.03), 
 				_flags);
 
@@ -112,7 +117,7 @@ void PointTracker::track(const cv::Mat &frame, int pyramidDepth) {
 	}
 }
 
-void PointTracker::retrack(const cv::Mat &frame, int pyramidDepth) {
+void PointTracker::retrack() {
 	try {
 		currentPoints = origPoints;
 
@@ -122,7 +127,7 @@ void PointTracker::retrack(const cv::Mat &frame, int pyramidDepth) {
 		}
 
 		_flags = 0;
-		cvtColor(frame, _grey, CV_BGR2GRAY);
+		cvtColor(Application::Components::videoInput->frame, _grey, CV_BGR2GRAY);
 
 		// Apply median filter of 5x5
 		medianBlur(_grey, _grey, 5);
@@ -135,7 +140,7 @@ void PointTracker::retrack(const cv::Mat &frame, int pyramidDepth) {
 			origPoints, currentPoints, 
 			status, err, 
 			cv::Size(_winSize,_winSize), 
-			pyramidDepth * 3, 
+			_pyramidDepth * 3, 
 			cv::TermCriteria(CV_TERMCRIT_EPS, 200, 0.0001), 
 			_flags);
 		//}
@@ -166,6 +171,10 @@ bool PointTracker::areAllPointsActive() {
 	return count(status.begin(), status.end(), 0) == 0;
 }
 
+bool PointTracker::isTrackingSuccessful() {
+	return countActivePoints() >= 4;
+}
+
 int PointTracker::pointCount() {
 	return currentPoints.size();
 }
@@ -179,11 +188,15 @@ std::vector<Point> PointTracker::getPoints(const std::vector<cv::Point2f> PointT
 	}
 	return vec;
 }
-// TODO ONUR CHANGE CANVAS TYPE
-void PointTracker::draw(cv::Mat &canvas) {
+
+void PointTracker::draw() {
+	cv::Mat image = Application::Components::videoInput->debugFrame;
+	
 	try {
 		for (int i = 0; i < (int)currentPoints.size(); i++) {
-			cv::circle(canvas, cvPointFrom32f(currentPoints[i]), 3, status[i] ? (i == eyePoint1 || i == eyePoint2 ? CV_RGB(255,0,0) : CV_RGB(0,255,0)) : CV_RGB(0,0,255), -1, 8, 0);
+			//std::cout << "Drawing point " << i+1 << "(" << currentPoints[i].x << ", " << currentPoints[i].y << ")" << std::endl;
+			cv::circle(image, Utils::mapFromVideoToDebugCoordinates(currentPoints[i]), 3, cv::Scalar(255,0,0), -1, 8, 0);
+			//status[i] ? (i == eyePoint1 || i == eyePoint2 ? cv::Scalar(255,0,0) : cv::Scalar(0,255,0)) : cv::Scalar(0,0,255)
 		}
 	}
 	catch (std::exception &ex) {
@@ -200,49 +213,6 @@ void PointTracker::normalizeOriginalGrey() {
 	*/
 }
 
-void PointTracker::save(std::string filename, std::string newname, const cv::Mat frame) {
-	cv::Rect face = FaceDetector::faceDetector.detect(frame);
-	if (face.width > 0) {
-		cv::imwrite((filename + "-orig-grey.png").c_str(), _origGrey);
-		
-		std::ofstream origFile((filename + "-orig-points.txt").c_str());
-		origFile << origPoints;
-
-		std::ofstream facefile(newname.c_str());
-		std::vector<Point> tempPoints;
-		Utils::convert(currentPoints, tempPoints);
-		facefile << pointBetweenRects(tempPoints, face, cv::Rect(0, 0, 1, 1));
-	} else {
-		throw std::ios_base::failure("No face found in the image");
-	}
-}
-
-void PointTracker::load(std::string filename, std::string newname, const cv::Mat frame) {
-	cv::Rect face = FaceDetector::faceDetector.detect(frame);
-
-	if (face.width > 0) {
-		std::ifstream origFile((filename + "-orig-points.txt").c_str());
-		std::ifstream faceFile(newname.c_str());
-		if (!origFile.is_open() || !faceFile.is_open()) {
-			throw std::ios_base::failure("File not found");
-		}
-
-		// todo: memory leak here, change to scoped_ptr!
-		_origGrey = cv::imread((filename + "-orig-grey.png").c_str(), 0);
-		
-		std::vector<Point> tempPoints;
-		origFile >> tempPoints;
-		Utils::convert(tempPoints, origPoints);
-
-		faceFile >> tempPoints;
-		tempPoints = pointBetweenRects(tempPoints, cvRect(0,0,1,1), face);
-		Utils::convert(tempPoints, currentPoints);
-		lastPoints = currentPoints;
-	} else {
-		throw std::ios_base::failure("No face found in the image");
-	}
-}
-
 void PointTracker::saveImage() {
 	cv::imwrite("point-selection-frame.png", _origGrey);
 }
@@ -251,4 +221,5 @@ void PointTracker::synchronizePoints() {
 	swap(_origGrey, _grey);
 	origPoints = lastPoints = currentPoints;
 }
+
 

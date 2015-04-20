@@ -1,19 +1,11 @@
-#include <fann.h>
+#include <fstream>
 
 #include "GazeTracker.h"
 #include "EyeExtractor.h"
 #include "Point.h"
 #include "mir.h"
+#include "Application.h"
 
-namespace {
-	fann_type *allInputs[1000];
-	fann_type *allOutputs[1000];
-	fann_type *allInputsLeft[1000];
-	fann_type *allOutputsLeft[1000];
-	cv::Mat *allImages[1000];
-	cv::Mat *allImagesLeft[1000];
-	double allOutputCoords[1000][2];
-}
 
 template <class T, class S> std::vector<S> getSubVector(std::vector<T> const &input, S T::*ptr) {
 	std::vector<S> output(input.size());
@@ -28,41 +20,7 @@ template <class T, class S> std::vector<S> getSubVector(std::vector<T> const &in
 static void ignore(const cv::Mat *) {
 }
 
-void FANN_API getTrainingData(unsigned int row, unsigned int inputSize, unsigned int outputSize, fann_type *input, fann_type *output) {
-	//std::cout << "GTD: row=" << row << ", inp. size=" << inputSize << ", op. size=" << outputSize << std::endl;
-	for (int i = 0; i < inputSize; i++) {
-		input[i] = allInputs[row][i];
-	}
-
-	for (int i = 0; i < outputSize; i++) {
-		output[i] = allOutputs[row][i];
-	}
-
-	//memcpy(input, allInputs[row], inputSize * sizeof(fann_type));
-	//memcpy(output, allOutputs[row], outputSize * sizeof(fann_type));
-}
-
-void FANN_API getTrainingDataLeft(unsigned int row, unsigned int inputSize, unsigned int outputSize, fann_type *input, fann_type *output) {
-	//std::cout << "GTD: row=" << row << ", inp. size=" << inputSize << ", op. size=" << outputSize << std::endl;
-	for (int i = 0; i < inputSize; i++) {
-		input[i] = allInputsLeft[row][i];
-	}
-
-	for (int i = 0; i < outputSize; i++) {
-		output[i] = allOutputsLeft[row][i];
-	}
-
-	//memcpy(input, allInputsLeft[row], inputSize * sizeof(fann_type));
-	//memcpy(output, allOutputsLeft[row], outputSize * sizeof(fann_type));
-}
-
-Targets::Targets() {}
-
-Targets::Targets(std::vector<Point> const &targets):
-	targets(targets)
-{
-}
-
+/*
 int Targets::getCurrentTarget(Point point) {
 	std::vector<double> distances(targets.size());
 	//debugTee(targets);
@@ -77,57 +35,15 @@ int Targets::getCurrentTarget(Point point) {
 	//return -1;
 }
 
-CalTarget::CalTarget() {}
+*/
 
-CalTarget::CalTarget(Point point, const cv::Mat *image, const cv::Mat *origImage):
-	point(point),
-	image(new cv::Mat(image->size(), image->type()), Utils::releaseImage),
-	origImage(new cv::Mat(origImage->size(), origImage->type()), Utils::releaseImage)
+
+GazeTracker::GazeTracker()
 {
-	image->copyTo(*this->image);
-	origImage->copyTo(*this->origImage);
-}
-
-void CalTarget::save(CvFileStorage *out, const char *name) {
-	cvStartWriteStruct(out, name, CV_NODE_MAP);
-	point.save(out, "point");
-	cvWrite(out, "image", image.get());
-	cvWrite(out, "origImage", origImage.get());
-	cvEndWriteStruct(out);
-}
-
-void CalTarget::load(CvFileStorage *in, CvFileNode *node) {
-	point.load(in, cvGetFileNodeByName(in, node, "point"));
-	image.reset((cv::Mat*) cvReadByName(in, node, "image"));
-	origImage.reset((cv::Mat*) cvReadByName(in, node, "origImage"));
-}
-
-TrackerOutput::TrackerOutput(Point gazePoint, Point target, int targetId):
-	gazePoint(gazePoint),
-	target(target),
-	targetId(targetId)
-{
-}
-
-void TrackerOutput::setActualTarget(Point actual) {
-	actualTarget = actual;
-}
-
-//void TrackerOutput::setErrorOutput(bool show) {
-//	outputError = show;
-//}
-
-void TrackerOutput::setFrameId(int id) {
-	frameId = id;
-}
-
-GazeTracker::GazeTracker():
-	output(Point(0,0), Point(0,0), -1),
-	_targets(new Targets),
-	_nnEye(new cv::Mat(cv::Size(16, 8), CV_8UC1)),
-	_inputCount(0),
-	_inputCountLeft(0)
-{
+	Application::Data::gazePointGP.x = 0;
+	Application::Data::gazePointGP.y = 0;
+	Application::Data::gazePointGPLeft.x = 0;
+	Application::Data::gazePointGPLeft.y = 0;
 }
 
 bool GazeTracker::isActive() {
@@ -135,145 +51,22 @@ bool GazeTracker::isActive() {
 }
 
 void GazeTracker::clear() {
-	_calTargets.clear();
-	_calTargetsLeft.clear();
-	_betaX = -1;
-	_gammaX = -1;
-
-	_ANN = fann_create_standard(2, _nnEyeWidth * _nnEyeHeight, 2);
-	fann_set_activation_function_output(_ANN, FANN_SIGMOID);
-
-	_ANNLeft = fann_create_standard(2, _nnEyeWidth * _nnEyeHeight, 2);
-	fann_set_activation_function_output(_ANNLeft, FANN_SIGMOID);
-
 	// updateGaussianProcesses()
 }
 
-void GazeTracker::addExemplar(Point point, const cv::Mat *eyeFloat, const cv::Mat *eyeGrey) {
-	_calTargets.push_back(CalTarget(point, eyeFloat, eyeGrey));
+void GazeTracker::addExemplar() {
+	// Add new sample to the GPs. Save the image samples (average eye images) in corresponding vectors
+	_calibrationTargetImages.push_back(Application::Components::eyeExtractor->averageEye->getMean());
+	_calibrationTargetImagesLeft.push_back(Application::Components::eyeExtractor->averageEyeLeft->getMean());
+	
 	updateGaussianProcesses();
-}
-
-void GazeTracker::addExemplarLeft(Point point, const cv::Mat *eyeFloat, const cv::Mat *eyeGrey) {
-	_calTargetsLeft.push_back(CalTarget(point, eyeFloat, eyeGrey));
-	updateGaussianProcessesLeft();
-}
-
-void GazeTracker::addSampleToNN(Point point, const cv::Mat *eyeFloat, const cv::Mat *eyeGrey) {
-	// Save the entire grey image for later use
-	cv::Mat *savedImage = new cv::Mat(EyeExtractor::eyeSize, CV_32FC1);
-	eyeFloat->copyTo(*savedImage);
-
-	allImages[_inputCount] = savedImage;
-	allOutputCoords[_inputCount][0] = point.x;
-	allOutputCoords[_inputCount][1] = point.y;
-
-	// Resize image to 16x8 and equalize histogram
-	cv::resize(*eyeGrey, *_nnEye, _nnEye->size());
-	//cv::equalizeHist(_nnEye, _nnEye);
-
-	// Convert image to interval [0, 1]
-	fann_type *inputs = new fann_type[_nnEyeWidth * _nnEyeHeight];
-	for (int i = 0; i < _nnEyeWidth * _nnEyeHeight; ++i) {
-		inputs[i] = (float)(_nnEye->data[i] + 129) / 257.0f;
-
-		if (inputs[i] < 0 || inputs[i] > 1) {
-			std::cout << "IMPOSSIBLE INPUT!" << std::endl;
-		}
-
-		//if (((int)eyeGrey->data[i] >= 127) || ((int)eyeGrey->data[i] <= -127)) {
-		//	std::cout << "INPUT[" << i << "] = " << inputs[i] << ", image data = " << (int)eyeGrey->data[i] << std::endl;
-		//}
-	}
-
-	// Convert coordinates to interval [0, 1]
-	Point nnPoint;
-	Utils::mapToNeuralNetworkCoordinates(point, nnPoint);
-
-	fann_type *outputs = new fann_type[2];
-	outputs[0] = nnPoint.x;
-	outputs[1] = nnPoint.y;
-
-	allOutputs[_inputCount] = &(outputs[0]);
-	allInputs[_inputCount] = &(inputs[0]);
-	_inputCount++;
-
-	//std::cout << "Added sample # " << inputCount << std::endl;
-	//for (int j = 0; j < 100; j++) {
-	//	fann_train(_ANN, inputs, outputs);	// Moved training to batch
-	//}
-}
-
-void GazeTracker::addSampleToNNLeft(Point point, const cv::Mat *eyeFloat, const cv::Mat *eyeGrey) {
-	// Save the entire grey image for later use
-	cv::Mat *savedImage = new cv::Mat(EyeExtractor::eyeSize, CV_32FC1);
-	eyeFloat->copyTo(*savedImage);
-
-	allImagesLeft[_inputCountLeft] = savedImage;
-
-	// Resize image to 16x8
-	cv::resize(*eyeGrey, *_nnEye, _nnEye->size());
-	//cv::equalizeHist(_nnEye, _nnEye);
-
-	// Convert image to interval [0, 1]
-	fann_type* inputs = new fann_type[_nnEyeWidth * _nnEyeHeight];
-	for (int i = 0; i < _nnEyeWidth * _nnEyeHeight; ++i) {
-		inputs[i] = (float)(_nnEye->data[i] + 129) / 257.0f;
-
-		if (inputs[i] < 0 || inputs[i] > 1) {
-			std::cout << "IMPOSSIBLE INPUT!" << std::endl;
-		}
-	}
-
-	// Convert coordinates to interval [0, 1]
-	Point nnPoint;
-	Utils::mapToNeuralNetworkCoordinates(point, nnPoint);
-
-	fann_type *outputs = new fann_type[2];
-	outputs[0] = nnPoint.x;
-	outputs[1] = nnPoint.y;
-
-	allOutputsLeft[_inputCountLeft] = outputs;
-	allInputsLeft[_inputCountLeft] = inputs;
-	_inputCountLeft++;
-
-	//std::cout << "(Left) Added sample # " << _inputCountLeft << std::endl;
-	//for (int j = 0; j < 100; j++) {
-	//	fann_train(_ANNLeft, inputs, outputs);	// Moved training to batch
-	//}
-}
-
-void GazeTracker::trainNN() {
-	std::cout << "Getting data" << std::endl;
-	struct fann_train_data *data = fann_create_train_from_callback(_inputCount, _nnEyeWidth * _nnEyeHeight, 2, getTrainingData);
-	//fann_save_train(data, "data.txt");
-
-	std::cout << "Getting left data" << std::endl;
-	struct fann_train_data *dataLeft = fann_create_train_from_callback(_inputCount, _nnEyeWidth * _nnEyeHeight, 2, getTrainingDataLeft);
-	//fann_save_train(dataLeft, "dataLeft.txt");
-
-	fann_set_training_algorithm(_ANN, FANN_TRAIN_RPROP);
-	fann_set_learning_rate(_ANN, 0.75);
-	fann_set_training_algorithm(_ANNLeft, FANN_TRAIN_RPROP);
-	fann_set_learning_rate(_ANNLeft, 0.75);
-
-	std::cout << "Training" << std::endl;
-	fann_train_on_data(_ANN, data, 200, 20, 0.01);
-
-	std::cout << "Training left" << std::endl;
-	fann_train_on_data(_ANNLeft, dataLeft, 200, 20, 0.01);
-
-	double mse = fann_get_MSE(_ANN);
-	double mseLeft = fann_get_MSE(_ANNLeft);
-
-	std::cout << "MSE: " << mse << ", MSE left: " << mseLeft << std::endl;
 }
 
 void GazeTracker::removeCalibrationError(Point &estimate) {
 	double x[1][2];
 	double output[1];
 	double sigma[1];
-	int pointCount = _calTargets.size() + 4;
+	int pointCount = Application::Data::calibrationTargets.size() + 4;
 
 	if (_betaX == -1 && _gammaX == -1) {
 		return;
@@ -306,157 +99,128 @@ void GazeTracker::removeCalibrationError(Point &estimate) {
 
 	//std::cout << "Estimation corrected from: (" << x[0][0] << ", " << x[0][1] << ") to (" << estimate.x << ", " << estimate.y << ")" << std::endl;
 
-	boundToScreenCoordinates(estimate);
+	boundToScreenArea(estimate);
 
 	//std::cout << "Estimation corrected from: (" << x[0][0] << ", " << x[0][1] << ") to (" << estimate.x << ", " << estimate.y << ")" << std::endl;
 }
 
-void GazeTracker::boundToScreenCoordinates(Point &estimate) {
-	int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-	Gdk::Rectangle monitorGeometry;
-	Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-
-	// Geometry of main monitor
-	screen->get_monitor_geometry(numMonitors - 1, monitorGeometry);
+void GazeTracker::boundToScreenArea(Point &estimate) {
+	cv::Rect *rect = Utils::getMainMonitorGeometry();
 
 	// If x or y coordinates are outside screen boundaries, correct them
-	if (estimate.x < monitorGeometry.get_x()) {
-		estimate.x = monitorGeometry.get_x();
+	if (estimate.x < rect->x) {
+		estimate.x = rect->x;
 	}
 
-	if (estimate.y < monitorGeometry.get_y()) {
-		estimate.y = monitorGeometry.get_y();
+	if (estimate.y < rect->y) {
+		estimate.y = rect->y;
 	}
 
-	if (estimate.x >= monitorGeometry.get_x() + monitorGeometry.get_width()) {
-		estimate.x = monitorGeometry.get_x() + monitorGeometry.get_width();
+	if (estimate.x >= rect->x + rect->width) {
+		estimate.x = rect->x + rect->width;
 	}
 
-	if (estimate.y >= monitorGeometry.get_y() + monitorGeometry.get_height()) {
-		estimate.y = monitorGeometry.get_y() + monitorGeometry.get_height();
+	if (estimate.y >= rect->y + rect->height) {
+		estimate.y = rect->y + rect->height;
 	}
 }
 
-void GazeTracker::checkErrorCorrection() {
+void GazeTracker::draw() {
+	if (!Application::Components::pointTracker->isTrackingSuccessful())
+		return;
+	
+	cv::Mat image = Application::Components::videoInput->debugFrame;
+
+	// If not blinking, draw the estimations to debug window
+	if (isActive() && !Application::Components::eyeExtractor->isBlinking()) {
+		Point estimation(0, 0);
+		
+		//Utils::mapToVideoCoordinates(Application::Data::gazePointGP, Application::Components::videoInput->getResolution(), estimation);
+		cv::circle(image, 
+			Utils::mapFromMainScreenToDebugCoordinates(cv::Point(Application::Data::gazePointGP.x, Application::Data::gazePointGP.y)), 
+			8, cv::Scalar(0, 255, 0), -1, 8, 0);
+
+		//Utils::mapToVideoCoordinates(Application::Data::gazePointGPLeft, Application::Components::videoInput->getResolution(), estimation);
+		cv::circle(image, 
+			Utils::mapFromMainScreenToDebugCoordinates(cv::Point(Application::Data::gazePointGPLeft.x, Application::Data::gazePointGPLeft.y)), 
+			8, cv::Scalar(255, 0, 0), -1, 8, 0);
+	}
 }
 
-void GazeTracker::draw(cv::Mat &destImage, int eyeDX, int eyeDY) {
-//	for (int i = 0; i < _calTargets.size(); i++) {
-//		Point p = _calTargets[i].point;
-//		cvSetImageROI(destImage, cvRect((int)p.x - eyeDX, (int)p.y - eyeDY, 2 * eyeDX, 2 * eyeDY));
-//		cvCvtColor(_calTargets[i].origImage, destImage, CV_GRAY2RGB);
-//		cvRectangle(destImage, cvPoint(0, 0), cvPoint(2 * eyeDX - 1, 2 * eyeDY - 1), CV_RGB(255, 0, 255));
-//	}
-//	cvResetImageROI(destImage);
+void GazeTracker::process() {
+	if (!Application::Components::pointTracker->isTrackingSuccessful()) {
+		return;
+	}
+	
+	// If recalibration is necessary (there is a new target), recalibrate the Gaussian Processes
+	if(Application::Components::calibrator->needRecalibration) {
+		addExemplar();
+	}
+	
+	if(Application::Components::calibrator->isActive()
+		&& Application::Components::calibrator->getPointFrameNo() >= 11
+		&& !Application::Components::eyeExtractor->isBlinking()) {
+		
+		// Add current sample (not the average, but sample from each usable frame) to the vector
+		cv::Mat *temp = new cv::Mat(EyeExtractor::eyeSize, CV_32FC1);
+		Application::Components::eyeExtractor->eyeFloat->copyTo(*temp);
+
+		Utils::SharedImage temp2(new cv::Mat(temp->size(), temp->type()), Utils::releaseImage);
+		_calibrationTargetImagesAllFrames.push_back(temp2);
+		
+		// Repeat for left eye
+		temp = new cv::Mat(EyeExtractor::eyeSize, CV_32FC1);
+		Application::Components::eyeExtractor->eyeFloatLeft->copyTo(*temp);
+
+		Utils::SharedImage temp3(new cv::Mat(temp->size(), temp->type()), Utils::releaseImage);
+		_calibrationTargetImagesLeftAllFrames.push_back(temp3);
+		
+		_calibrationTargetPointsAllFrames.push_back(Application::Components::calibrator->getActivePoint());
+	}
+	
+	// Update the left and right estimations
+	updateEstimations();
 }
 
-void GazeTracker::save() {
-	CvFileStorage *out = cvOpenFileStorage("calibration.xml", NULL, CV_STORAGE_WRITE);
-	save(out, "GazeTracker");
-	cvReleaseFileStorage(&out);
-}
-
-void GazeTracker::save(CvFileStorage *out, const char *name) {
-	cvStartWriteStruct(out, name, CV_NODE_MAP);
-	Utils::saveVector(out, "calTargets", _calTargets);
-	cvEndWriteStruct(out);
-}
-
-void GazeTracker::load() {
-	CvFileStorage *in = cvOpenFileStorage("calibration.xml", NULL, CV_STORAGE_READ);
-	CvFileNode *root = cvGetRootFileNode(in);
-	load(in, cvGetFileNodeByName(in, root, "GazeTracker"));
-	cvReleaseFileStorage(&in);
-	updateGaussianProcesses();
-}
-
-void GazeTracker::load(CvFileStorage *in, CvFileNode *node) {
-	_calTargets = Utils::loadVector<CalTarget>(in, cvGetFileNodeByName(in, node, "calTargets"));
-}
-
-void GazeTracker::update(const cv::Mat *image, const cv::Mat *eyeGrey) {
+void GazeTracker::updateEstimations() {
 	if (isActive()) {
-		output.gazePoint = Point(_gaussianProcessX->getmean(Utils::SharedImage(image, &ignore)), _gaussianProcessY->getmean(Utils::SharedImage(image, &ignore)));
-		output.targetId = getTargetId(output.gazePoint);
-		output.target = getTarget(output.targetId);
+		cv::Mat *image = Application::Components::eyeExtractor->eyeFloat.get();
+		Application::Data::gazePointGP = Point(_gaussianProcessX->getmean(Utils::SharedImage(image, &ignore)), _gaussianProcessY->getmean(Utils::SharedImage(image, &ignore)));
+		
+		image = Application::Components::eyeExtractor->eyeFloatLeft.get();
+		Application::Data::gazePointGPLeft = Point(_gaussianProcessXLeft->getmean(Utils::SharedImage(image, &ignore)), _gaussianProcessYLeft->getmean(Utils::SharedImage(image, &ignore)));
 
-		// Neural network
-		// Resize image to 16x8
-		cv::resize(*eyeGrey, *_nnEye, _nnEye->size());
-		cv::equalizeHist(*_nnEye, *_nnEye);
-
-		fann_type inputs[_nnEyeWidth * _nnEyeHeight];
-		for (int i = 0; i < _nnEyeWidth * _nnEyeHeight; ++i) {
-			inputs[i] = (float)(_nnEye->data[i] + 129) / 257.0f;
-		}
-
-		fann_type *outputs = fann_run(_ANN, inputs);
-		Utils::mapFromNeuralNetworkToScreenCoordinates(Point(outputs[0], outputs[1]), output.nnGazePoint);
-	}
-}
-
-void GazeTracker::updateLeft(const cv::Mat *image, const cv::Mat *eyeGrey) {
-	if (isActive()) {
-		output.gazePointLeft = Point(_gaussianProcessXLeft->getmean(Utils::SharedImage(image, &ignore)), _gaussianProcessYLeft->getmean(Utils::SharedImage(image, &ignore)));
-
-		// Neural network
-		// Resize image to 16x8
-		cv::resize(*eyeGrey, *_nnEye, _nnEye->size());
-		cv::equalizeHist(*_nnEye, *_nnEye);
-
-		fann_type inputs[_nnEyeWidth * _nnEyeHeight];
-		for (int i = 0; i < _nnEyeWidth * _nnEyeHeight; ++i) {
-			inputs[i] = (float)(_nnEye->data[i] + 129) / 257.0f;
-		}
-
-		fann_type *outputs = fann_run(_ANNLeft, inputs);
-		Utils::mapFromNeuralNetworkToScreenCoordinates(Point(outputs[0], outputs[1]), output.nnGazePointLeft);
-
-		if (_gammaX != 0) {
-			// Overwrite the NN output with the GP output with calibration errors removed
-			output.nnGazePoint.x = (output.gazePoint.x + output.gazePointLeft.x) / 2;
-			output.nnGazePoint.y = (output.gazePoint.y + output.gazePointLeft.y) / 2;
-
-			removeCalibrationError(output.nnGazePoint);
-
-			output.nnGazePointLeft.x = output.nnGazePoint.x;
-			output.nnGazePointLeft.y = output.nnGazePoint.y;
-		}
+		// Bound estimations to screen area
+		boundToScreenArea(Application::Data::gazePointGP);
+		boundToScreenArea(Application::Data::gazePointGPLeft);
 	}
 }
 
 Point GazeTracker::getTarget(int id) {
-	return _targets->targets[id];
+	return Application::Data::calibrationTargets[id];
 }
 
 int GazeTracker::getTargetId(Point point) {
-	return _targets->getCurrentTarget(point);
+	return point.closestPoint(Application::Data::calibrationTargets);
 }
 
 void GazeTracker::calculateTrainingErrors() {
-	int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-	Gdk::Rectangle monitorGeometry;
-	Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
+	int j = 0;
 
-	// Geometry of main monitor
-	screen->get_monitor_geometry(numMonitors - 1, monitorGeometry);
+	//std::cout << "Input count: " << _calibrationTargetPointsAllFrames.size();
+	//std::cout << ", Target size: " << Application::Data::calibrationTargets.size() << std::endl;
 
-	std::vector<Point> points = getSubVector(_calTargets, &CalTarget::point);
-
-	//std::cout << "Input count: " << _inputCount;
-	//std::cout << ", Target size: " << _calTargets.size() << std::endl;
-
-	for (int i = 0; i < _calTargets.size(); i++) {
+	// For each calibration target, calculate the average estimation using calibration samples
+	for (int i = 0; i < Application::Data::calibrationTargets.size(); i++) {
 		double xTotal = 0;
 		double yTotal = 0;
 		double sampleCount = 0;
-
-		//std::cout << points[i].x << ", " << points[i].y << " x " << allOutputCoords[j][0] << ", " << allOutputCoords[j][1] << std::endl;
-
-		int j = 0;
-		while (j < _inputCount && points[i].x == allOutputCoords[j][0] && points[i].y == allOutputCoords[j][1]) {
-			double xEstimate = (_gaussianProcessX->getmean(Utils::SharedImage(allImages[j], &ignore)) + _gaussianProcessXLeft->getmean(Utils::SharedImage(allImagesLeft[j], &ignore))) / 2;
-			double yEstimate = (_gaussianProcessY->getmean(Utils::SharedImage(allImages[j], &ignore)) + _gaussianProcessYLeft->getmean(Utils::SharedImage(allImagesLeft[j], &ignore))) / 2;
+		
+		while (j < _calibrationTargetPointsAllFrames.size() 
+				&& Application::Data::calibrationTargets[i].x == _calibrationTargetPointsAllFrames[j].x
+				&& Application::Data::calibrationTargets[i].y == _calibrationTargetPointsAllFrames[j].y) {
+			double xEstimate = (_gaussianProcessX->getmean(_calibrationTargetImagesAllFrames[j]) + _gaussianProcessXLeft->getmean(_calibrationTargetImagesLeftAllFrames[j])) / 2;
+			double yEstimate = (_gaussianProcessY->getmean(_calibrationTargetImagesAllFrames[j]) + _gaussianProcessYLeft->getmean(_calibrationTargetImagesLeftAllFrames[j])) / 2;
 
 			//std::cout << "i, j = (" << i << ", " << j << "), est: " << xEstimate << "(" << _gaussianProcessX->getmean(SharedImage(allImages[j], &ignore)) << "," << _gaussianProcessXLeft->getmean(SharedImage(allImagesLeft[j], &ignore)) << ")" << ", " << yEstimate << "(" << _gaussianProcessY->getmean(SharedImage(allImages[j], &ignore)) << "," << _gaussianProcessYLeft->getmean(SharedImage(allImagesLeft[j], &ignore)) << ")" << std::endl;
 
@@ -469,16 +233,16 @@ void GazeTracker::calculateTrainingErrors() {
 		xTotal /= sampleCount;
 		yTotal /= sampleCount;
 
-		*outputFile << "TARGET: (" << _calTargets[i].point.x << "\t, " << _calTargets[i].point.y << "\t),\tESTIMATE: (" << xTotal << "\t, " << yTotal << ")" << std::endl;
-		//std::cout << "TARGET: (" << _calTargets[i].point.x << "\t, " << _calTargets[i].point.y << "\t),\tESTIMATE: (" << xTotal << "\t, " << yTotal << "),\tDIFF: (" << fabs(_calTargets[i].point.x- x_total) << "\t, " << fabs(_calTargets[i].point.y - y_total) << ")" << std::endl;
+		Application::resultsOutputFile << "TARGET: (" << Application::Data::calibrationTargets[i].x << "\t, " << Application::Data::calibrationTargets[i].y << "\t),\tESTIMATE: (" << xTotal << "\t, " << yTotal << ")" << std::endl;
+		//std::cout << "TARGET: (" << Application::Data::calibrationTargets[i].x << "\t, " << Application::Data::calibrationTargets[i].y << "\t),\tESTIMATE: (" << xTotal << "\t, " << yTotal << "),\tDIFF: (" << fabs(Application::Data::calibrationTargets[i].x- x_total) << "\t, " << fabs(Application::Data::calibrationTargets[i].y - y_total) << ")" << std::endl;
 
 		// Calibration error removal
 		_xv[i][0] = xTotal;		// Source
 		_xv[i][1] = yTotal;
 
 		// Targets
-		_fvX[i] = _calTargets[i].point.x;
-		_fvY[i] = _calTargets[i].point.y;
+		_fvX[i] = Application::Data::calibrationTargets[i].x;
+		_fvY[i] = Application::Data::calibrationTargets[i].y;
 		_sigv[i] = 0;
 
 		int targetId = getTargetId(Point(xTotal, yTotal));
@@ -489,27 +253,29 @@ void GazeTracker::calculateTrainingErrors() {
 	}
 
 	// Add the corners of the monitor as 4 extra data points. This helps the correction for points that are near the edge of monitor
-	_xv[_calTargets.size()][0] = monitorGeometry.get_x();
-	_xv[_calTargets.size()][1] = monitorGeometry.get_y();
-	_fvX[_calTargets.size()] = monitorGeometry.get_x()-40;
-	_fvY[_calTargets.size()] = monitorGeometry.get_y()-40;
+	cv::Rect *rect = Utils::getMainMonitorGeometry();
+	
+	_xv[Application::Data::calibrationTargets.size()][0] = rect->x;
+	_xv[Application::Data::calibrationTargets.size()][1] = rect->y;
+	_fvX[Application::Data::calibrationTargets.size()] = rect->x-40;
+	_fvY[Application::Data::calibrationTargets.size()] = rect->y-40;
 
-	_xv[_calTargets.size()+1][0] = monitorGeometry.get_x() + monitorGeometry.get_width();
-	_xv[_calTargets.size()+1][1] = monitorGeometry.get_y();
-	_fvX[_calTargets.size()+1] = monitorGeometry.get_x() + monitorGeometry.get_width() + 40;
-	_fvY[_calTargets.size()+1] = monitorGeometry.get_y() - 40;
+	_xv[Application::Data::calibrationTargets.size()+1][0] = rect->x + rect->width;
+	_xv[Application::Data::calibrationTargets.size()+1][1] = rect->y;
+	_fvX[Application::Data::calibrationTargets.size()+1] = rect->x + rect->width + 40;
+	_fvY[Application::Data::calibrationTargets.size()+1] = rect->y - 40;
 
-	_xv[_calTargets.size()+2][0] = monitorGeometry.get_x() + monitorGeometry.get_width();
-	_xv[_calTargets.size()+2][1] = monitorGeometry.get_y() + monitorGeometry.get_height();
-	_fvX[_calTargets.size()+2] = monitorGeometry.get_x() + monitorGeometry.get_width() + 40;
-	_fvY[_calTargets.size()+2] = monitorGeometry.get_y() + monitorGeometry.get_height() + 40;
+	_xv[Application::Data::calibrationTargets.size()+2][0] = rect->x + rect->width;
+	_xv[Application::Data::calibrationTargets.size()+2][1] = rect->y + rect->height;
+	_fvX[Application::Data::calibrationTargets.size()+2] = rect->x + rect->width + 40;
+	_fvY[Application::Data::calibrationTargets.size()+2] = rect->y + rect->height + 40;
 
-	_xv[_calTargets.size()+3][0] = monitorGeometry.get_x();
-	_xv[_calTargets.size()+3][1] = monitorGeometry.get_y() + monitorGeometry.get_height();
-	_fvX[_calTargets.size()+3] = monitorGeometry.get_x() - 40;
-	_fvY[_calTargets.size()+3] = monitorGeometry.get_y() + monitorGeometry.get_height() + 40;
+	_xv[Application::Data::calibrationTargets.size()+3][0] = rect->x;
+	_xv[Application::Data::calibrationTargets.size()+3][1] = rect->y + rect->height;
+	_fvX[Application::Data::calibrationTargets.size()+3] = rect->x - 40;
+	_fvY[Application::Data::calibrationTargets.size()+3] = rect->y + rect->height + 40;
 
-	int pointCount = _calTargets.size() + 4;
+	int pointCount = Application::Data::calibrationTargets.size() + 4;
 	int N = pointCount;
 	N = binomialInv(N, 2) - 1;
 
@@ -517,51 +283,31 @@ void GazeTracker::calculateTrainingErrors() {
 	mirBetaGamma(1, 2, pointCount, (double *)_xv, _fvX, _sigv, 0, NULL, NULL, NULL, N, 2, 50.0, &_betaX, &_gammaX);
 	mirBetaGamma(1, 2, pointCount, (double *)_xv, _fvY, _sigv, 0, NULL, NULL, NULL, N, 2, 50.0, &_betaY, &_gammaY);
 
-	*outputFile << std::endl << std::endl;
+	Application::resultsOutputFile << std::endl << std::endl;
 	std::cout << std::endl << std::endl;
 
-	outputFile->flush();
+	Application::resultsOutputFile.flush();
 
 	std::cout << "ERROR CALCULATION FINISHED. BETA = " << _betaX << ", " << _betaY << ", GAMMA IS " << _gammaX << ", " << _gammaY << std::endl;
 	for (int i = 0; i < pointCount; i++) {
 		std::cout << _xv[i][0] << ", " << _xv[i][1] << std::endl;
 	}
-
-	//checkErrorCorrection();
 }
 
 void GazeTracker::printTrainingErrors() {
-	int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-	Gdk::Rectangle monitorGeometry;
-	Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-
-	//return;
-
-	// Geometry of main monitorGazeTracker.cpp:233:136: error: expected ‘;’ before string constant
-
-	screen->get_monitor_geometry(numMonitors - 1, monitorGeometry);
-
-	std::vector<Point> points = getSubVector(_calTargets, &CalTarget::point);
+	//cv::Rect *rect = Utils::getMainMonitorGeometry();
 
 	//std::cout << "PRINTING TRAINING ESTIMATIONS: " << std::endl;
 	//for (int i = 0; i < 15; i++) {
 	//	int imageIndex = 0;
 	//	int j = 0;
-	//	while (j < inputCount && points[i].x == allOutputCoords[j][0] && points[i].y == allOutputCoords[j][1]) {
+	//	while (j < _calibrationTargetPointsAllFrames.size() && Application::Data::calibrationTargets[i].x == allOutputCoords[j][0] && Application::Data::calibrationTargets[i].y == allOutputCoords[j][1]) {
 	//		std::cout << "X, Y: '" << _gaussianProcessX->getmean(SharedImage(allImages[j], &ignore)) << ", " << _gaussianProcessY->getmean(SharedImage(allImages[j], &ignore)) << "' and '" << _gaussianProcessXLeft->getmean(SharedImage(allImagesLeft[j], &ignore)) << ", " << _gaussianProcessYLeft->getmean(SharedImage(allImagesLeft[j], &ignore)) << "' " << std::endl;
 	//		image_index++;
 	//		j++;
 	//	}
 	//}
 }
-
-
-//void GazeTracker::updateExemplar(int id, const cv::Mat &eyeFloat, const cv::Mat &eyeGrey) {
-//	cvConvertScale(eyeGrey, _calTargets[id].origImage.get());
-//	cvAdd(_calTargets[id].image.get(), eyeFloat, _calTargets[id].image.get());
-//	cvConvertScale(_calTargets[id].image.get(), _calTargets[id].image.get(), 0.5);
-//	updateGaussianProcesses();
-//}
 
 double GazeTracker::imageDistance(const cv::Mat *image1, const cv::Mat *image2) {
 	double norm = cv::norm(*image1, *image2, CV_L2);
@@ -578,33 +324,16 @@ void GazeTracker::updateGaussianProcesses() {
 	std::vector<double> xLabels;
 	std::vector<double> yLabels;
 
-	for (int i = 0; i < _calTargets.size(); i++) {
-		xLabels.push_back(_calTargets[i].point.x);
-		yLabels.push_back(_calTargets[i].point.y);
+	// Prepare separate vector of targets for X and Y directions 
+	for (int i = 0; i < Application::Data::calibrationTargets.size(); i++) {
+		xLabels.push_back(Application::Data::calibrationTargets[i].x);
+		yLabels.push_back(Application::Data::calibrationTargets[i].y);
 	}
-
-	std::vector<Utils::SharedImage> images = getSubVector(_calTargets, &CalTarget::image);
-	//std::cout << "INSIDE updateGPs" << std::endl;
-	//std::cout << "labels size: " << xLabels.size();
-	//std::cout << "images size: " << images.size();
-	_gaussianProcessX.reset(new ImProcess(images, xLabels, covarianceFunction, 0.01));
-	_gaussianProcessY.reset(new ImProcess(images, yLabels, covarianceFunction, 0.01));
-	_targets.reset(new Targets(getSubVector(_calTargets, &CalTarget::point)));
-}
-
-void GazeTracker::updateGaussianProcessesLeft() {
-	std::vector<double> xLabels;
-	std::vector<double> yLabels;
-
-	for (int i = 0; i < _calTargetsLeft.size(); i++) {
-		xLabels.push_back(_calTargetsLeft[i].point.x);
-		yLabels.push_back(_calTargetsLeft[i].point.y);
-	}
-
-	std::vector<Utils::SharedImage> images = getSubVector(_calTargetsLeft, &CalTarget::image);
-
-	_gaussianProcessXLeft.reset(new ImProcess(images, xLabels, covarianceFunction, 0.01));
-	_gaussianProcessYLeft.reset(new ImProcess(images, yLabels, covarianceFunction, 0.01));
-	//_targetsLeft.reset(new Targets(getSubVector(_calTargetsLeft, &CalTarget::point)));
+	
+	_gaussianProcessX.reset(new ImProcess(_calibrationTargetImages, xLabels, covarianceFunction, 0.01));
+	_gaussianProcessY.reset(new ImProcess(_calibrationTargetImages, yLabels, covarianceFunction, 0.01));
+	
+	_gaussianProcessXLeft.reset(new ImProcess(_calibrationTargetImagesLeft, xLabels, covarianceFunction, 0.01));
+	_gaussianProcessYLeft.reset(new ImProcess(_calibrationTargetImagesLeft, yLabels, covarianceFunction, 0.01));
 }
 

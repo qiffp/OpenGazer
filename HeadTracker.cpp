@@ -1,6 +1,7 @@
 #include "HeadTracker.h"
 #include "FMatrixAffineCompute.cpp"
 #include "utils.h"
+#include "Application.h"
 
 // Decide whether two numbers have the same sign
 bool issamesign(int a, int b) {
@@ -38,29 +39,35 @@ static Point predictPoint(Point p, double depth, double dMeanX, double dMeanY, d
 	return Point(p2.x + rotY * depth + dMeanX, p2.y - rotX * depth + dMeanY);
 }
 
-HeadTracker::HeadTracker(PointTracker &pointTracker):
-	pointTracker(pointTracker)
+HeadTracker::HeadTracker()
 {
 }
 
-void HeadTracker::draw(cv::Mat &image) {
+void HeadTracker::draw() {
+	if (!Application::Components::pointTracker->isTrackingSuccessful())
+		return;
+	
+	cv::Mat image = Application::Components::videoInput->debugFrame;
+	
+	return;	// DO NOT DISPLAY ANYTHING FOR HEAD TRACKER
+	
 	//std::cout << "state: "<< rotX << " " << rotY << " " << atX << " " << atY << std::endl;
 
 	cv::line(image, cv::Point(320, 240), cv::Point(320 + int(atX * 50), 240 + int(atY * 50)), cv::Scalar(255,255,255));
 
-	//for (int i = 0; i < pointTracker.pointCount; i++) {
+	//for (int i = 0; i < Application::Components::pointTracker->pointCount; i++) {
 	// 	cvLine(
 	//		image,
-	//		cvPoint(pointTracker.currentPoints[i].x, pointTracker.currentPoints[i].y),
-	//		cvPoint(pointTracker.origPoints[i].x - xx0 + xx1, pointTracker.origPoints[i].y - yy0 + yy1),
+	//		cvPoint(Application::Components::pointTracker->currentPoints[i].x, Application::Components::pointTracker->currentPoints[i].y),
+	//		cvPoint(Application::Components::pointTracker->origPoints[i].x - xx0 + xx1, Application::Components::pointTracker->origPoints[i].y - yy0 + yy1),
 	//		CV_RGB(255,0,0));
 	//}
 
-	for (int i = 0; i < pointTracker.pointCount(); i++) {
+	for (int i = 0; i < Application::Components::pointTracker->pointCount(); i++) {
 		cv::line(
 			image,
-			cv::Point((int)pointTracker.currentPoints[i].x, (int)pointTracker.currentPoints[i].y),
-			cv::Point((int)pointTracker.currentPoints[i].x, int(pointTracker.currentPoints[i].y + _depths[i] * 100)),
+			cv::Point((int)Application::Components::pointTracker->currentPoints[i].x, (int)Application::Components::pointTracker->currentPoints[i].y),
+			cv::Point((int)Application::Components::pointTracker->currentPoints[i].x, int(Application::Components::pointTracker->currentPoints[i].y + _depths[i] * 100)),
 			cv::Scalar(0,0,255));
 	}
 
@@ -68,13 +75,16 @@ void HeadTracker::draw(cv::Mat &image) {
 	cv::line(image, cv::Point(320, 240), cvPoint(320 + int(rotY * scale), 240 + int(rotX * scale)), cv::Scalar(255,255,255));
 }
 
-void HeadTracker::updateTracker() {
+void HeadTracker::process() {
 	try {
-		_depths.resize(pointTracker.pointCount());
-		detectInliers(pointTracker.getPoints(&PointTracker::origPoints, true), pointTracker.getPoints(&PointTracker::currentPoints, true));
+		if (!Application::Components::pointTracker->isTrackingSuccessful())
+			return;
+		
+		_depths.resize(Application::Components::pointTracker->pointCount());
+		detectInliers(Application::Components::pointTracker->getPoints(&PointTracker::origPoints, true), Application::Components::pointTracker->getPoints(&PointTracker::currentPoints, true));
 
-		std::vector<Point> origPoints = pointTracker.getPoints(&PointTracker::origPoints, false);
-		std::vector<Point> currentPoints = pointTracker.getPoints(&PointTracker::currentPoints, false);
+		std::vector<Point> origPoints = Application::Components::pointTracker->getPoints(&PointTracker::origPoints, false);
+		std::vector<Point> currentPoints = Application::Components::pointTracker->getPoints(&PointTracker::currentPoints, false);
 
 		double xx0 = mean(origPoints, &Point::x);
 		double yy0 = mean(origPoints, &Point::y);
@@ -95,17 +105,17 @@ void HeadTracker::updateTracker() {
 		double e = (*fmatrix)[4];
 
 		// compute the change
-		std::vector<double> offsets(pointTracker.pointCount());
+		std::vector<double> offsets(Application::Components::pointTracker->pointCount());
 
 		double depthSum = 0.0001;
 		double offsetSum = 0.0001;
 
-		for (int i = 0; i < pointTracker.pointCount(); i++) {
-			if (pointTracker.status[i]) {
-				double xOrig = pointTracker.origPoints[i].x - xx0;
-				double yOrig = pointTracker.origPoints[i].y - yy0;
-				double xNew = pointTracker.currentPoints[i].x - xx1;
-				double yNew = pointTracker.currentPoints[i].y - yy1;
+		for (int i = 0; i < Application::Components::pointTracker->pointCount(); i++) {
+			if (Application::Components::pointTracker->status[i]) {
+				double xOrig = Application::Components::pointTracker->origPoints[i].x - xx0;
+				double yOrig = Application::Components::pointTracker->origPoints[i].y - yy0;
+				double xNew = Application::Components::pointTracker->currentPoints[i].x - xx1;
+				double yNew = Application::Components::pointTracker->currentPoints[i].y - yy1;
 				double x0 = b * xOrig - a * yOrig;
 				double x1 = -d * xNew + c * yNew;
 				offsets[i] = x0 - x1;
@@ -114,7 +124,7 @@ void HeadTracker::updateTracker() {
 			}
 		}
 
-		if (pointTracker.areAllPointsActive()) {
+		if (Application::Components::pointTracker->areAllPointsActive()) {
 			//std::cout << std::endl;
 			depthSum = 1.0;
 		}
@@ -128,10 +138,10 @@ void HeadTracker::updateTracker() {
 		atY = -(a * d - c * b) / (c * c + d * d); // at = AmpliTwist
 
 		// depths
-		std::vector<double> newDepths(pointTracker.pointCount());
+		std::vector<double> newDepths(Application::Components::pointTracker->pointCount());
 
-		for (int i = 0; i < pointTracker.pointCount(); i++) {
-			if (pointTracker.status[i]) {
+		for (int i = 0; i < Application::Components::pointTracker->pointCount(); i++) {
+			if (Application::Components::pointTracker->status[i]) {
 				newDepths[i] = offsets[i] / depthScale;
 			}
 		}
@@ -139,11 +149,11 @@ void HeadTracker::updateTracker() {
 		if (newDepths[1] > newDepths[2]) {
 			rotX = -rotX;
 			rotY = -rotY;
-			for (int i = 0; i < pointTracker.pointCount(); i++) {
+			for (int i = 0; i < Application::Components::pointTracker->pointCount(); i++) {
 				_depths[i] = -newDepths[i];
 			}
 		} else {
-			for (int i = 0; i < pointTracker.pointCount(); i++) {
+			for (int i = 0; i < Application::Components::pointTracker->pointCount(); i++) {
 				_depths[i] = newDepths[i];
 			}
 		}
@@ -152,15 +162,15 @@ void HeadTracker::updateTracker() {
 		//	distance
 		//double distance1 = 0.0;
 		//double distance2 = 0.0;
-		//for (int i = 0; i < pointTracker.pointCount; i++) {
-		//	if (pointTracker.status[i]) {
+		//for (int i = 0; i < Application::Components::pointTracker->pointCount; i++) {
+		//	if (Application::Components::pointTracker->status[i]) {
 		//		distance1 += square(_depths[i] - newDepths[i]);
 		//		distance2 += square(_depths[i] + newDepths[i]);
 		//	}
 		//}
 
-		//for (int i = 0; i < pointTracker.pointCount; i++) {
-		//	if (pointTracker.status[i]) {
+		//for (int i = 0; i < Application::Components::pointTracker->pointCount; i++) {
+		//	if (Application::Components::pointTracker->status[i]) {
 		//		if (distance1 > distance2) {
 		//			rotx = -rotx;
 		//			roty = -roty;
@@ -218,13 +228,13 @@ std::vector<bool> HeadTracker::detectInliers(std::vector<Point> const &prev, std
 
 	for (int i = 0; i < inliers.size(); i++) {
 		if (!inliers[i]) {
-			pointTracker.status[i] = false;
+			Application::Components::pointTracker->status[i] = false;
 
-			pointTracker.currentPoints[i].x = 0.3 * (pointTracker.origPoints[i].x + transitions[maxIndex].x) + 0.7 * pointTracker.currentPoints[i].x;
-			//pointTracker.origPoints[i].x + transitions[maxindex].x;
+			Application::Components::pointTracker->currentPoints[i].x = 0.3 * (Application::Components::pointTracker->origPoints[i].x + transitions[maxIndex].x) + 0.7 * Application::Components::pointTracker->currentPoints[i].x;
+			//Application::Components::pointTracker->origPoints[i].x + transitions[maxindex].x;
 
-			pointTracker.currentPoints[i].y = 0.3 * (pointTracker.origPoints[i].y + transitions[maxIndex].y)+ 0.7 * pointTracker.currentPoints[i].y;
-			//pointTracker.origPoints[i].y + transitions[maxindex].y;
+			Application::Components::pointTracker->currentPoints[i].y = 0.3 * (Application::Components::pointTracker->origPoints[i].y + transitions[maxIndex].y)+ 0.7 * Application::Components::pointTracker->currentPoints[i].y;
+			//Application::Components::pointTracker->origPoints[i].y + transitions[maxindex].y;
 		}
 	}
 
@@ -235,30 +245,30 @@ void HeadTracker::predictPoints(double xx0, double yy0, double xx1, double yy1, 
 	double maxDiff = 0.0;
 	int diffIndex = -1;
 
-	std::vector<Point> points = pointTracker.getPoints(&PointTracker::origPoints, true);
+	std::vector<Point> points = Application::Components::pointTracker->getPoints(&PointTracker::origPoints, true);
 
 	for (int i = 0; i < points.size(); i++) {
 		Point p(points[i].x - xx0, points[i].y - yy0);
 		Point p1 = predictPoint(p, _depths[i], xx1, yy1, rotX, rotY, atX, atY);
 		Point p2 = predictPoint(p, -_depths[i], xx1, yy1, rotX, rotY, atX, atY);
 
-		double diff1 = fabs(p1.x - pointTracker.currentPoints[i].x) + fabs(p1.y - pointTracker.currentPoints[i].y);
-		double diff2 = fabs(p2.x - pointTracker.currentPoints[i].x) + fabs(p2.y - pointTracker.currentPoints[i].y);
+		double diff1 = fabs(p1.x - Application::Components::pointTracker->currentPoints[i].x) + fabs(p1.y - Application::Components::pointTracker->currentPoints[i].y);
+		double diff2 = fabs(p2.x - Application::Components::pointTracker->currentPoints[i].x) + fabs(p2.y - Application::Components::pointTracker->currentPoints[i].y);
 		double diff = diff1 > diff2 ? diff2 : diff1;
 
 		// dubious code, I'm not sure about it
-		if (!pointTracker.status[i]) {
+		if (!Application::Components::pointTracker->status[i]) {
 			//std::cout << "P1 and P2: " << p1.x << ", " << p1.y << " - " << p2.x << ", " << p2.y << std::endl;
 			//std::cout << "DEPTH: " << _depths[i] << std::endl;
 			//std::cout << "DIFFS: " << diff1 << ", " << diff2 << std::endl;
 
 			if (diff == diff1) {
-				pointTracker.currentPoints[i].x = 0 * pointTracker.currentPoints[i].x + 1 * p1.x;
-				pointTracker.currentPoints[i].y = 0 * pointTracker.currentPoints[i].y + 1 * p1.y;
+				Application::Components::pointTracker->currentPoints[i].x = 0 * Application::Components::pointTracker->currentPoints[i].x + 1 * p1.x;
+				Application::Components::pointTracker->currentPoints[i].y = 0 * Application::Components::pointTracker->currentPoints[i].y + 1 * p1.y;
 				//std::cout << "UPDATED WITH P1 POSITION" << std::endl;
 			} else {
-				pointTracker.currentPoints[i].x = 0 * pointTracker.currentPoints[i].x + 1 * p2.x;
-				pointTracker.currentPoints[i].y = 0 * pointTracker.currentPoints[i].y + 1 * p2.y;
+				Application::Components::pointTracker->currentPoints[i].x = 0 * Application::Components::pointTracker->currentPoints[i].x + 1 * p2.x;
+				Application::Components::pointTracker->currentPoints[i].y = 0 * Application::Components::pointTracker->currentPoints[i].y + 1 * p2.y;
 				//std::cout << "UPDATED WITH P2 POSITION" << std::endl;
 			}
 		}

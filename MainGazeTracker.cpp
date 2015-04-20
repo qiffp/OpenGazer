@@ -1,60 +1,31 @@
 #include <fstream>
 
 #include "MainGazeTracker.h"
+
+
+#include "PointTracker.h"
+#include "EyeExtractor.h"
+#include "GazeTracker.h"
+#include "HeadTracker.h"
+#include "HeadCompensation.h"
+
 #include "Application.h"
 #include "utils.h"
 #include "FaceDetector.h"
 #include "Detection.h"
-
-namespace {
-	float calculateDistance(CvPoint2D32f pt1, CvPoint2D32f pt2 ) {
-		float dx = pt2.x - pt1.x;
-		float dy = pt2.y - pt1.y;
-
-		return cvSqrt((float)(dx * dx + dy * dy));
-	}
-
-	std::vector<Point> scaleByScreen(const std::vector<Point> &points) {
-		int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-		Gdk::Rectangle rect;
-		Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-
-		if (numMonitors == 1) {
-			return Calibrator::scaled(points, screen->get_width(), screen->get_height());
-		} else {
-			screen->get_monitor_geometry(numMonitors - 1, rect);
-			return Calibrator::scaled(points, rect.get_width(), rect.get_height());
-		}
-	}
-
-	void checkRectSize(const cv::Mat &image, cv::Rect *rect) {
-		if (rect->x < 0) {
-			rect->x = 0;
-		}
-
-		if (rect->y < 0) {
-			rect->y = 0;
-		}
-
-		if (rect->x + rect->width >= image.size().width) {
-			rect->width = image.size().width - rect->x - 1;
-		}
-
-		if (rect->y + rect->height >= image.size().height) {
-			rect->height = image.size().height - rect->y - 1;
-		}
-	}
-}
+#include "DebugWindow.h"
+#include "TestWindow.h"
 
 MainGazeTracker::MainGazeTracker(int argc, char **argv):
-	_frameStoreLoad(-1),
 	_stores(Application::getStores()),
-	_autoReload(false),
-	_videoOverlays(false),
-	_totalFrameCount(0),
-	_recording(false),
-	_commandIndex(-1)
+	_commandIndex(-1),
+	_initiateCalibration(false),
+	_initiateTesting(false),
+	_initiatePointSelection(false),
+	_initiatePointClearing(false)
 {
+	Application::Components::mainTracker = this;
+	
 	CommandLineArguments args(argc, argv);
 
 	if (args.getOptionValue("help").length()) {
@@ -89,20 +60,20 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	}
 
 	if (args.getOptionValue("input").length()) {
-		videoInput.reset(new VideoInput(args.getOptionValue("resolution"), args.getOptionValue("input"), true));
+		Application::Components::videoInput.reset(new VideoInput(args.getOptionValue("resolution"), args.getOptionValue("input"), true));
 
 		// Read the commands (SELECT, CLEAR, CALIBRATE, TEST)
 		std::string inputCommandFilename = args.getOptionValue("input");
 		inputCommandFilename = inputCommandFilename.substr(0, inputCommandFilename.length()-4) + "_commands.txt";
 
-		_commandInputFile = new std::ifstream(inputCommandFilename.c_str());
+		_commandInputFile.open(inputCommandFilename.c_str());
 
 		for(;;) {
 			long number;
 			std::string name;
-			*_commandInputFile >> number >> name;
+			_commandInputFile >> number >> name;
 
-			if (_commandInputFile->rdstate()) {
+			if (_commandInputFile.rdstate()) {
 				break; // break if any error
 			}
 
@@ -115,18 +86,10 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	} else {
 		// --resolution parameter
 		if (args.getOptionValue("resolution").length()) {
-			videoInput.reset(new VideoInput(args.getOptionValue("resolution")));
+			Application::Components::videoInput.reset(new VideoInput(args.getOptionValue("resolution")));
 		} else {
-			videoInput.reset(new VideoInput("480"));
+			Application::Components::videoInput.reset(new VideoInput("480"));
 		}
-	}
-
-	if (videoInput.get()->getResolution() == 720) {
-		_conversionImage.create(cv::Size(1280, 720), CV_8UC3);
-	} else if (videoInput.get()->getResolution() == 1080) {
-		_conversionImage.create(cv::Size(1920, 1080), CV_8UC3);
-	} else if (videoInput.get()->getResolution() == 480) {
-		_conversionImage.create(cv::Size(640, 480), CV_8UC3);
 	}
 
 	std::string subject = args.getOptionValue("subject");
@@ -141,7 +104,7 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	}
 
 	if (args.getOptionValue("overlay") == "1") {
-		_videoOverlays = true;
+		Application::Settings::videoOverlays = true;
 	}
 
 	// --headdistance parameter
@@ -184,62 +147,55 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 
 	// --record parameter
 	if (args.getOptionValue("record") == "1") {
-		_video.reset(new VideoWriter(videoInput->size, _basePath.substr(0, _basePath.length() - 4) + ".avi"));
-		_recording = true;
+		Application::Components::video.reset(new VideoWriter(Application::Components::videoInput->size, _basePath.substr(0, _basePath.length() - 4) + ".avi"));
+		Application::Settings::recording = true;
 	}
 
-	_outputFile = new std::ofstream((_basePath + "_").c_str());
+	Application::resultsOutputFile.open((_basePath + "_").c_str());
 
 	// First write the system time
 	time_t currentTime = time(NULL);
-	*_outputFile << ctime(&currentTime) << std::endl;
+	Application::resultsOutputFile << ctime(&currentTime) << std::endl;
 
 	// Then write the setup parameters
-	*_outputFile << "--input=" << args.getOptionValue("input") << std::endl;
-	*_outputFile << "--record=" << args.getOptionValue("record") << std::endl;
-	*_outputFile << "--overlay=" << (_videoOverlays ? "true" : "false") << std::endl;
-	*_outputFile << "--headdistance=" << _headDistance << std::endl;
-	*_outputFile << "--resolution=" << args.getOptionValue("resolution") << std::endl;
-	*_outputFile << "--setup=" << setup << std::endl;
-	*_outputFile << "--subject=" << subject << std::endl << std::endl;
+	Application::resultsOutputFile << "--input=" << args.getOptionValue("input") << std::endl;
+	Application::resultsOutputFile << "--record=" << args.getOptionValue("record") << std::endl;
+	Application::resultsOutputFile << "--overlay=" << (Application::Settings::videoOverlays ? "true" : "false") << std::endl;
+	Application::resultsOutputFile << "--headdistance=" << _headDistance << std::endl;
+	Application::resultsOutputFile << "--resolution=" << args.getOptionValue("resolution") << std::endl;
+	Application::resultsOutputFile << "--setup=" << setup << std::endl;
+	Application::resultsOutputFile << "--subject=" << subject << std::endl << std::endl;
 
 	// Finally the screen resolution
-	Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-	Gdk::Rectangle rect;
-	screen->get_monitor_geometry(Gdk::Screen::get_default()->get_n_monitors() - 1, rect);
-	*_outputFile << "Screen resolution: " << rect.get_width() << " x " << rect.get_height() << " (Position: "<< rect.get_x() << ", "<< rect.get_y() << ")" << std::endl << std::endl;
-	_outputFile->flush();
+	cv::Rect *rect = Utils::getMainMonitorGeometry();
+	
+	Application::resultsOutputFile << "Screen resolution: " << rect->width << " x " << rect->height << " (Position: "<< rect->x << ", "<< rect->y << ")" << std::endl << std::endl;
+	Application::resultsOutputFile.flush();
 
 	// If recording, create the file to write the commands for button events
-	if (_recording) {
+	if (Application::Settings::recording) {
 		std::string commandFileName = _basePath.substr(0, _basePath.length() - 4) + "_commands.txt";
-		_commandOutputFile = new std::ofstream(commandFileName.c_str());
+		_commandOutputFile.open(commandFileName.c_str());
 	}
 
 	_directory = setup;
 
-	canvas.reset(new cv::Mat(videoInput->size, CV_8UC3));
-	trackingSystem.reset(new TrackingSystem(videoInput->size));
-
-	trackingSystem->gazeTracker.outputFile = _outputFile;
-	isCalibrationOutputWritten = true;
-
-	_gameWin = new GameWindow(&(trackingSystem->gazeTracker.output));
-	_gameWin->show();
-
-	if (videoInput.get()->getResolution() == 720) {
-		_repositioningImage.create(cv::Size(1280, 720), CV_8UC3);
-	} else if (videoInput.get()->getResolution() == 1080) {
-		_repositioningImage.create(cv::Size(1920, 1080), CV_8UC3);
-	} else if (videoInput.get()->getResolution() == 480) {
-		_repositioningImage.create(cv::Size(640, 480), CV_8UC3);
-	}
+	// Create system components
+	Application::Components::pointTracker = new PointTracker(Application::Components::videoInput->size);
+	Application::Components::eyeExtractor = new EyeExtractor();
+	Application::Components::gazeTracker = new GazeTracker();
+	Application::Components::headTracker = new HeadTracker();
+	Application::Components::headCompensation = new HeadCompensation();
+	Application::Components::calibrator = new Calibrator();
+	Application::Components::debugWindow = new DebugWindow();
+	Application::Components::testWindow = new TestWindow();
 	
 	// Load detector cascades
 	Detection::loadCascades();
 	
-	_gameWin->setRepositioningImage(&_repositioningImage);
-	Application::faceRectangle = NULL;
+	// Create timer for initiating main loop
+	connect(&_timer, SIGNAL (timeout()), this, SLOT (process()));
+	_timer.start(100);
 }
 
 MainGazeTracker::~MainGazeTracker() {
@@ -247,222 +203,81 @@ MainGazeTracker::~MainGazeTracker() {
 }
 
 void MainGazeTracker::process() {
-	_totalFrameCount++;
-	_frameCount++;
-	videoInput->updateFrame();
+	Application::Components::videoInput->updateFrame();
+	const cv::Mat frame = Application::Components::videoInput->frame;
 
 	// Wait a little so that the marker stays on the screen for a longer time
-	if ((Application::status == Application::STATUS_CALIBRATING || Application::status == Application::STATUS_TESTING) && !videoInput->captureFromVideo) {
-		usleep(Application::sleepParameter);
+//	if ((Application::status == Application::STATUS_CALIBRATING || Application::status == Application::STATUS_TESTING) && !Application::Components::videoInput->captureFromVideo) {
+//		usleep(Application::sleepParameter);
+//	}
+
+	if (Application::status != Application::STATUS_PAUSED) {	
+		// Execute any pending signals (start calibration, etc.)
+		simulateClicks();
+		processActionSignals();
+		
+		// Process all components
+		Application::Components::calibrator->process();
+		Application::Components::testWindow->process();
+		Application::Components::pointTracker->process();
+		Application::Components::headTracker->process();
+		Application::Components::eyeExtractor->process();
+		Application::Components::gazeTracker->process();
+		
+		// Draw components' debug information on debug image
+		Application::Components::calibrator->draw();
+		Application::Components::testWindow->draw();
+		Application::Components::pointTracker->draw();
+		Application::Components::headTracker->draw();
+		Application::Components::eyeExtractor->draw();
+		Application::Components::gazeTracker->draw();
+		
+		// Display debug image in the window
+		Application::Components::debugWindow->display();
 	}
 
-	const cv::Mat frame = videoInput->frame;
-	//canvas->data = frame.data;
-
-	double imageNorm = 0.0;
-
-	if (Application::status == Application::STATUS_PAUSED) {
-		cv::addWeighted(frame, 0.5, _overlayImage, 0.5, 0.0, *(canvas.get()));
-
-		// Only calculate norm in the area containing the face
-		if (_face.width > 0) {
-			imageNorm = cv::norm(frame(_face), _overlayImage(_face), CV_L2);
-			imageNorm = (10000 * imageNorm) / (_face.width * _face.height);
-
-			// To be able to use the same threshold for VGA and 720 cameras
-			if (videoInput->getResolution() == 720) {
-				imageNorm *= 1.05;
-			}
-
-			std::cout << "ROI NORM: " << imageNorm << " (" << _face.width << "x" << _face.height << ")" << std::endl;
-		} else {
-			imageNorm = cv::norm(frame, _overlayImage, CV_L2);
-			imageNorm = (15000 * imageNorm) / (videoInput->getResolution() * videoInput->getResolution());
-
-			// To be able to use the same threshold for only-face method and all-image method
-			imageNorm *= 1.2;
-
-			// To be able to use the same threshold for VGA and 720 cameras
-			if (videoInput->getResolution() == 720) {
-				imageNorm *= 1.05;
-			}
-			//std::cout << "WHOLE NORM: " << imageNorm << std::endl;
+	if (Application::Components::gazeTracker->isActive()) {
+		// Write the output to all the channels
+		xForEach(iter, _stores) {
+			(*iter)->store();
 		}
-	} else {
-		frame.copyTo(*canvas.get());
-	}
 
-	try {
-		trackingSystem->process(videoInput->frame, canvas.get());
-
-		if (trackingSystem->gazeTracker.isActive()) {
-			if (Application::status != Application::STATUS_TESTING) {
-				trackingSystem->gazeTracker.output.setActualTarget(Point(0, 0));
-				trackingSystem->gazeTracker.output.setFrameId(0);
-			} else {
-				trackingSystem->gazeTracker.output.setActualTarget(Point(target->getActivePoint().x, target->getActivePoint().y));
-				trackingSystem->gazeTracker.output.setFrameId(target->getPointFrame());
-			}
-
-			//trackingSystem->gazeTracker.output.setErrorOutput(Application::status == Application::STATUS_TESTING);	// No longer necessary, TODO REMOVE
-
-			xForEach(iter, _stores) {
-				(*iter)->store(trackingSystem->gazeTracker.output);
-			}
-
-			// Write the same info to the output text file
-			if (_outputFile != NULL) {
-				TrackerOutput output = trackingSystem->gazeTracker.output;
-				if (Application::status == Application::STATUS_TESTING) {
-					std::cout << "TESTING, WRITING OUTPUT!!!!!!!!!!!!!!!!!" << std::endl;
-					if (!trackingSystem->eyeExtractor.isBlinking()) {
-						*_outputFile << output.frameId + 1 << "\t"
-							<< output.actualTarget.x << "\t" << output.actualTarget.y << "\t"
-							<< output.gazePoint.x << "\t" << output.gazePoint.y << "\t"
-							<< output.gazePointLeft.x << "\t" << output.gazePointLeft.y
-							//<< "\t" << output.nnGazePoint.x << "\t" << output.nnGazePoint.y << "\t"
-							//<< output.nnGazePointLeft.x << "\t" << output.nnGazePointLeft.y
-							<< std::endl;
-					} else {
-						*_outputFile << output.frameId + 1 << "\t"
-							<< output.actualTarget.x << "\t" << output.actualTarget.y << "\t"
-							<< 0 << "\t" << 0 << "\t"
-							<< 0 << "\t" << 0
-							// << "\t" << 0 << "\t" << 0 << "\t"
-							//<< 0 << "\t" << 0
-							<< std::endl;
-					}
+		// Write the same info to the output text file
+		if (Application::resultsOutputFile != NULL) {
+			if (Application::status == Application::STATUS_TESTING) {
+				if (!Application::Components::eyeExtractor->isBlinking()) {
+					Application::resultsOutputFile << Application::Components::testWindow->getPointFrameNo() + 1 << "\t"
+						<< Application::Components::testWindow->getActivePoint().x << "\t" << Application::Components::testWindow->getActivePoint().y << "\t"
+						<< Application::Data::gazePointGP.x 	<< "\t" << Application::Data::gazePointGP.y 	<< "\t"
+						<< Application::Data::gazePointGPLeft.x << "\t" << Application::Data::gazePointGPLeft.y
+						<< std::endl;
+				} else {
+					Application::resultsOutputFile << Application::Components::testWindow->getPointFrameNo() + 1 << "\t"
+						<< Application::Components::testWindow->getActivePoint().x << "\t" << Application::Components::testWindow->getActivePoint().y << "\t"
+						<< 0 << "\t" << 0 << "\t"
+						<< 0 << "\t" << 0
+						<< std::endl;
 				}
-
-				_outputFile->flush();
 			}
+
+			Application::resultsOutputFile.flush();
 		}
-
-		//if (!trackingSystem->tracker.areAllPointsActive()) {
-		//	throw TrackingException();
-		//}
-		_frameStoreLoad = 20;
 	}
-	catch (TrackingException &e) {
-		_frameStoreLoad--;
-	}
-
-	if (Application::status == Application::STATUS_PAUSED) {
-		int rectangleThickness = 15;
-		cv::Scalar color;
-
-		if (imageNorm < 1500) {
-			color = CV_RGB(0, 255, 0);
-		} else if (imageNorm < 2500) {
-			color = CV_RGB(0, 165, 255);
-		} else {
-			color = CV_RGB(0, 0, 255);
-		}
-
-		cv::rectangle(*canvas.get(), cv::Point(0, 0), cv::Point(rectangleThickness, videoInput->size.height), color, CV_FILLED, 8, 0);	// left
-		cv::rectangle(*canvas.get(), cv::Point(0, 0), cv::Point(videoInput->size.width, rectangleThickness), color, CV_FILLED, 8, 0);	// top
-		cv::rectangle(*canvas.get(), cv::Point(videoInput->size.width - rectangleThickness, 0), cv::Point(videoInput->size.width, videoInput->size.height), color, CV_FILLED, 8, 0);		// right
-		cv::rectangle(*canvas.get(), cv::Point(0, videoInput->size.height - rectangleThickness), cv::Point(videoInput->size.width, videoInput->size.height), color, CV_FILLED, 8, 0);	// bottom
-
-		// Fill the repositioning image so that it can be displayed on the subject's monitor too
-		cv::addWeighted(frame, 0.5, _overlayImage, 0.5, 0.0, _repositioningImage);
-
-		cv::rectangle(_repositioningImage, cv::Point(0, 0), cv::Point(rectangleThickness, videoInput->size.height), color, CV_FILLED, 8, 0);	// left
-		cv::rectangle(_repositioningImage, cv::Point(0, 0), cv::Point(videoInput->size.width, rectangleThickness), color, CV_FILLED, 8, 0);		// top
-		cv::rectangle(_repositioningImage, cv::Point(videoInput->size.width - rectangleThickness, 0), cv::Point(videoInput->size.width, videoInput->size.height), color, CV_FILLED, 8, 0);	// right
-		cv::rectangle(_repositioningImage, cv::Point(0, videoInput->size.height - rectangleThickness), cv::Point(videoInput->size.width, videoInput->size.height), color, CV_FILLED, 8, 0);	// bottom
-	}
-
-	frameFunctions.process();
 
 	// If video output is requested
-	if (_recording) {
-		if (_videoOverlays) {
-			//std::cout << "VIDEO EXISTS" << std::endl;
-			TrackerOutput output = trackingSystem->gazeTracker.output;
-
-			Point actualTarget(0, 0);
-			Point estimation(0, 0);
-
-			canvas->copyTo(_conversionImage);
-
-			if (Application::status == Application::STATUS_TESTING) {
-				//std::cout << "TARGET: " << output.actualTarget.x << ", " << output.actualTarget.y << std::endl;
-				Utils::mapToVideoCoordinates(output.actualTarget, videoInput->getResolution(), actualTarget);
-				//std::cout << "MAPPING: " << actualTarget.x << ", " << actualTarget.y << std::endl << std::endl;
-
-				cv::circle(_conversionImage, cv::Point(actualTarget.x, actualTarget.y), 8, cv::Scalar(0, 0, 255), -1, 8, 0);
-
-				// If not blinking, show the estimation in video
-				if (!trackingSystem->eyeExtractor.isBlinking()) {
-					Utils::mapToVideoCoordinates(output.gazePoint, videoInput->getResolution(), estimation);
-					cv::circle(_conversionImage, cv::Point(estimation.x, estimation.y), 8, cv::Scalar(0, 255, 0), -1, 8, 0);
-
-					Utils::mapToVideoCoordinates(output.gazePointLeft, videoInput->getResolution(), estimation);
-					cv::circle(_conversionImage, cv::Point(estimation.x, estimation.y), 8, cv::Scalar(255, 0, 0), -1, 8, 0);
-				}
-			}
-
-			if (Application::status == Application::STATUS_PAUSED) {
-				int rectangleThickness = 15;
-				cv::Scalar color;
-
-				if (imageNorm < 1900) {
-					color = CV_RGB(0, 255, 0);
-				} else if (imageNorm < 3000) {
-					color = CV_RGB(255, 165, 0);
-				} else {
-					color = CV_RGB(255, 0, 0);
-				}
-
-				cv::rectangle(_conversionImage, cv::Point(0, 0), cv::Point(rectangleThickness, videoInput->size.height), color, CV_FILLED, 8, 0);	// left
-				cv::rectangle(_conversionImage, cv::Point(0, 0), cv::Point(videoInput->size.width, rectangleThickness), color, CV_FILLED, 8, 0);	// top
-				cv::rectangle(_conversionImage, cv::Point(videoInput->size.width - rectangleThickness, 0), cv::Point(videoInput->size.width, videoInput->size.height), color, CV_FILLED, 8, 0);		// right
-				cv::rectangle(_conversionImage, cv::Point(0, videoInput->size.height - rectangleThickness), cv::Point(videoInput->size.width, videoInput->size.height), color, CV_FILLED, 8, 0);	// bottom
-			}
-
-			_video->write(_conversionImage);
-		} else {
-			//std::cout << "Trying to write video image" << std::endl;
-			videoInput->frame.copyTo(_conversionImage);
-			//std::cout << "Image copied" << std::endl;
-			_video->write(_conversionImage);
-			//std::cout << "Image written" << std::endl << std::endl;
+	if (Application::Settings::recording) {
+		if (Application::Settings::videoOverlays) {
+			Application::Components::video->write(Application::Components::videoInput->debugFrame);
 		}
-	}
-
-	// Show the current target & estimation points on the main window
-	if (Application::status == Application::STATUS_CALIBRATING || Application::status == Application::STATUS_TESTING || Application::status == Application::STATUS_CALIBRATED) {
-		TrackerOutput output = trackingSystem->gazeTracker.output;
-		Point actualTarget(0, 0);
-		Point estimation(0, 0);
-
-		if (Application::status == Application::STATUS_TESTING) {
-			Utils::mapToVideoCoordinates(target->getActivePoint(), videoInput->getResolution(), actualTarget, false);
-			cv::circle(*canvas.get(), cv::Point(actualTarget.x, actualTarget.y), 8, cv::Scalar(0, 0, 255), -1, 8, 0);
-		} else if(Application::status == Application::STATUS_CALIBRATING) {
-			Utils::mapToVideoCoordinates(_calibrator->getActivePoint(), videoInput->getResolution(), actualTarget, false);
-			cv::circle(*canvas.get(), cv::Point(actualTarget.x, actualTarget.y), 8, cv::Scalar(0, 0, 255), -1, 8, 0);
+		else {
+			Application::Components::video->write(Application::Components::videoInput->frame);	
 		}
-
-		// If not blinking, show the estimation in video
-		if (!trackingSystem->eyeExtractor.isBlinking()) {
-			Utils::mapToVideoCoordinates(output.gazePoint, videoInput->getResolution(), estimation, false);
-			cv::circle(*canvas.get(), cv::Point(estimation.x, estimation.y), 8, cv::Scalar(0, 255, 0), -1, 8, 0);
-
-			Utils::mapToVideoCoordinates(output.gazePointLeft, videoInput->getResolution(), estimation, false);
-			cv::circle(*canvas.get(), cv::Point(estimation.x, estimation.y), 8, cv::Scalar(255, 0, 0), -1, 8, 0);
-		}
-	}
-
-	if (_autoReload && _frameStoreLoad <= 0 && Application::status != Application::STATUS_PAUSED) {
- 		loadPoints();
 	}
 }
 
 void MainGazeTracker::simulateClicks() {
 	if (_commands.size() > 0) {
-		while(_commandIndex >= 0 && _commandIndex <= (_commands.size() - 1) && _commands[_commandIndex].frameNumber == _totalFrameCount) {
+		while(_commandIndex >= 0 && _commandIndex <= (_commands.size() - 1) && _commands[_commandIndex].frameNumber == Application::Components::videoInput->frameCount) {
 			std::cout << "Command: " << _commands[_commandIndex].commandName << std::endl;
 			if(strcmp(_commands[_commandIndex].commandName.c_str(), "SELECT") == 0) {
 				std::cout << "Choosing points automatically" << std::endl;
@@ -480,255 +295,114 @@ void MainGazeTracker::simulateClicks() {
 				std::cout << "Testing automatically" << std::endl;
 				startTesting();
 			}
-			else if(strcmp(_commands[_commandIndex].commandName.c_str(), "UNPAUSE") == 0 || strcmp(_commands[_commandIndex].commandName.c_str(), "PAUSE") == 0) {
-				std::cout << "Pausing/unpausing automatically" << std::endl;
-				pauseOrRepositionHead();
-			}
 
 			_commandIndex++;
 		}
 
-		if (_commandIndex == _commands.size() && (Application::status == Application::STATUS_IDLE || Application::status == Application::STATUS_CALIBRATED)) {
-			throw Utils::QuitNow();
+		//if (_commandIndex == _commands.size() && (Application::status == Application::STATUS_IDLE || Application::status == Application::STATUS_CALIBRATED)) {
+		//	throw Utils::QuitNow();
+		//}
+	}
+}
+
+// Process the signals for initiating certain tracker processes (calibration, testing, etc.)
+void MainGazeTracker::processActionSignals() {
+	// If should start calibration
+	if(_initiateCalibration) {
+		std::cout << "Choosing calibration" << std::endl;
+		
+		// Write action to commands file
+		if (Application::Settings::recording) {
+			_commandOutputFile << Application::Components::videoInput->frameCount << " CALIBRATE" << std::endl;
 		}
+		
+		// Set application state
+		Application::status = Application::STATUS_CALIBRATING;
+		
+		// Read calibration target list and start the calibration
+		std::ifstream calfile((_directory + "/calpoints.txt").c_str());
+		std::vector<Point> points = Utils::readAndScalePoints(calfile);
+
+		Application::Components::calibrator->start(points);
+		Application::Components::eyeExtractor->start();
+		
+		// Clear signal
+		_initiateCalibration = false;
+	}
+	
+	// If shoud start testing
+	if(_initiateTesting) {
+		std::cout << "Starting testing" << std::endl;
+		
+		// Write action to commands file
+		if (Application::Settings::recording) {
+			_commandOutputFile << Application::Components::videoInput->frameCount << " TEST" << std::endl;
+		}
+
+		// Set application state
+		Application::status = Application::STATUS_TESTING;
+		
+		// Read test target list and start testing
+		std::ifstream targetFile((_directory + "/testpoints.txt").c_str());
+		std::vector<Point> points = Utils::readAndScalePoints(targetFile);
+
+		Application::Components::testWindow->start(points);
+		
+		Application::resultsOutputFile << "TESTING" << std::endl << std::endl;
+		
+		// Clear signal
+		_initiateTesting = false;
+	}
+	
+	// If should choose points in next frame
+	if(_initiatePointSelection) {
+		std::cout << "Choosing points" << std::endl;
+		
+		// Write action to commands file
+		if (Application::Settings::recording) {
+			_commandOutputFile << Application::Components::videoInput->frameCount << " SELECT" << std::endl;
+		}
+		
+		// Choose points using the detector
+		Detection::choosePoints();
+		
+		_initiatePointSelection = false;
+	}
+	
+	// If should clear points in next frame
+	if(_initiatePointClearing) {
+		std::cout << "Clearing points" << std::endl;
+		// Write action to commands file
+		if (Application::Settings::recording) {
+			_commandOutputFile << Application::Components::videoInput->frameCount << " CLEAR" << std::endl;
+		}
+
+		Application::Components::pointTracker->clearTrackers();
+
+		_initiatePointClearing = false;
 	}
 }
 
 void MainGazeTracker::cleanUp() {
-	_outputFile->close();
+	Application::resultsOutputFile.close();
 	rename((_basePath + "_").c_str(), _basePath.c_str());
-	//rename("out.avi", (_basePath.substr(0, _basePath.length() - 4) + ".avi").c_str());
-}
-
-void MainGazeTracker::addTracker(Point point) {
-	trackingSystem->pointTracker.addTracker(point);
-}
-
-void MainGazeTracker::addExemplar(Point exemplar) {
-	if (exemplar.x >= EyeExtractor::eyeDX && exemplar.x + EyeExtractor::eyeDX < videoInput->size.width && exemplar.y >= EyeExtractor::eyeDY && exemplar.y + EyeExtractor::eyeDY < videoInput->size.height) {
-		trackingSystem->gazeTracker.addExemplar(exemplar, trackingSystem->eyeExtractor.eyeFloat.get(), trackingSystem->eyeExtractor.eyeGrey.get());
-		trackingSystem->gazeTracker.addExemplarLeft(exemplar, trackingSystem->eyeExtractor.eyeFloatLeft.get(), trackingSystem->eyeExtractor.eyeGreyLeft.get());
-	}
 }
 
 void MainGazeTracker::startCalibration() {
-	Application::status = Application::STATUS_CALIBRATING;
-
-	if (_gameWin == NULL) {
-		_gameWin = new GameWindow(&(trackingSystem->gazeTracker.output));
-	}
-
-	_gameWin->show();
-
-	if (_recording) {
-		*_commandOutputFile << _totalFrameCount << " CALIBRATE" << std::endl;
-	}
-
-	boost::shared_ptr<WindowPointer> pointer(new WindowPointer(WindowPointer::PointerSpec(30,30,1,0,0.2)));
-
-	_gameWin->setCalibrationPointer(pointer.get());
-
-	if (Gdk::Screen::get_default()->get_n_monitors() > 1) {
-		boost::shared_ptr<WindowPointer> mirror(new WindowPointer(WindowPointer::PointerSpec(30,30,1,0,0)));
-		pointer->mirror = mirror;
-	}
-
-	std::ifstream calfile((_directory + "/calpoints.txt").c_str());
-	boost::shared_ptr<Calibrator> cal(new Calibrator(_frameCount, trackingSystem, scaleByScreen(Calibrator::loadPoints(calfile)), pointer, Application::dwelltimeParameter));
-
-	_calibrator = cal.operator->();
-	isCalibrationOutputWritten = false;
-
-	frameFunctions.clear();
-	frameFunctions.addChild(&frameFunctions, cal);
+	_initiateCalibration = true;
 }
 
 void MainGazeTracker::startTesting() {
-	Application::status = Application::STATUS_TESTING;
-
-	if (_recording) {
-		*_commandOutputFile << _totalFrameCount << " TEST" << std::endl;
-	}
-
-	std::vector<Point> points;
-	boost::shared_ptr<WindowPointer> pointer(new WindowPointer(WindowPointer::PointerSpec(30,30,1,0,0.2)));
-
-	_gameWin->setCalibrationPointer(pointer.get());
-
-	if (Gdk::Screen::get_default()->get_n_monitors() > 1) {
-		boost::shared_ptr<WindowPointer> mirror(new WindowPointer(WindowPointer::PointerSpec(30,30,1,0,0)));
-		pointer->mirror = mirror;
-	}
-
-	// ONUR Modified code to read the test points from a text file
-	std::ifstream calfile((_directory + "/testpoints.txt").c_str());
-	points = Calibrator::loadPoints(calfile);
-
-	boost::shared_ptr<MovingTarget> moving(new MovingTarget(_frameCount, scaleByScreen(points), pointer, Application::testDwelltimeParameter));
-
-	target = moving.operator->();
-
-	//MovingTarget *target = new MovingTarget(_frameCount, scaleByScreen(points), pointer);
-	//shared_ptr<MovingTarget> moving((const boost::shared_ptr<MovingTarget>&) *target);
-
-	*_outputFile << "TESTING" << std::endl << std::endl;
-
-	frameFunctions.clear();
-	frameFunctions.addChild(&frameFunctions, moving);
-}
-
-void MainGazeTracker::startPlaying() {
-	if (_gameWin == NULL) {
-		_gameWin = new GameWindow(&(trackingSystem->gazeTracker.output));
-	}
-	_gameWin->show();
-}
-
-void MainGazeTracker::savePoints() {
-	try {
-		trackingSystem->pointTracker.save("pointTracker", "points.txt", videoInput->frame);
-		_autoReload = true;
-	}
-	catch (std::ios_base::failure &e) {
-		std::cout << e.what() << std::endl;
-	}
-}
-
-void MainGazeTracker::loadPoints() {
-	try {
-		trackingSystem->pointTracker.load("pointTracker", "points.txt", videoInput->frame);
-		_autoReload = true;
-	}
-	catch (std::ios_base::failure &e) {
-		std::cout << e.what() << std::endl;
-	}
+	_initiateTesting = true;
 }
 
 void MainGazeTracker::choosePoints() {
-	try {
-		Point eyes[2];
-		Point nose[2];
-		Point mouth[2];
-		Point eyebrows[2];
-
-		if (_recording) {
-			*_commandOutputFile << _totalFrameCount << " SELECT" << std::endl;
-		}
-		
-		Detection::detectEyeCorners(videoInput->frame, videoInput->getResolution(), eyes);
-		
-		cv::Rect noseRect = cv::Rect(eyes[0].x, eyes[0].y, fabs(eyes[0].x - eyes[1].x), fabs(eyes[0].x - eyes[1].x));
-		checkRectSize(videoInput->frame, &noseRect);
-		//std::cout << "Nose rect: " << noseRect.x << ", " << noseRect.y << " - " << noseRect.width << ", " << noseRect.height << std::endl;
-
-		if (!Detection::detectNose(videoInput->frame, videoInput->getResolution(), noseRect, nose)) {
-			std::cout << "NO NOSE" << std::endl;
-			return;
-		}
-
-		cv::Rect mouthRect = cv::Rect(eyes[0].x, nose[0].y, fabs(eyes[0].x - eyes[1].x), 0.8 * fabs(eyes[0].x - eyes[1].x));
-		checkRectSize(videoInput->frame, &mouthRect);
-
-		if (!Detection::detectMouth(videoInput->frame, videoInput->getResolution(), mouthRect, mouth)) {
-			std::cout << "NO MOUTH" << std::endl;
-			return;
-		}
-
-		cv::Rect eyebrowRect = cv::Rect(eyes[0].x + fabs(eyes[0].x - eyes[1].x) * 0.25, eyes[0].y - fabs(eyes[0].x - eyes[1].x) * 0.40, fabs(eyes[0].x - eyes[1].x) * 0.5, fabs(eyes[0].x - eyes[1].x) * 0.25);
-		checkRectSize(videoInput->frame, &eyebrowRect);
-		Detection::detectEyebrowCorners(videoInput->frame, videoInput->getResolution(), eyebrowRect, eyebrows);
-
-		//cvSaveImage("cframe.jpg", videoInput->frame);
-
-		trackingSystem->pointTracker.clearTrackers();
-		_autoReload = false;
-
-		trackingSystem->pointTracker.addTracker(eyes[0]);
-		trackingSystem->pointTracker.addTracker(eyes[1]);
-		trackingSystem->pointTracker.addTracker(nose[0]);
-		trackingSystem->pointTracker.addTracker(nose[1]);
-		trackingSystem->pointTracker.addTracker(mouth[0]);
-		trackingSystem->pointTracker.addTracker(mouth[1]);
-		trackingSystem->pointTracker.addTracker(eyebrows[0]);
-		trackingSystem->pointTracker.addTracker(eyebrows[1]);
-
-		std::cout << "EYES: " << eyes[0] << " + " << eyes[1] << std::endl;
-		std::cout << "NOSE: " << nose[0] << " + " << nose[1] << std::endl;
-		std::cout << "MOUTH: " << mouth[0] << " + " << mouth[1] << std::endl;
-		std::cout << "EYEBROWS: " << eyebrows[0] << " + " << eyebrows[1] << std::endl;
-
-		// Save point selection image
-		trackingSystem->pointTracker.saveImage();
-
-		// Calculate the area containing the face
-		//extractFaceRegionRectangle(videoInput->frame, trackingSystem->pointTracker.getPoints(&PointTracker::lastPoints, true));
-		//trackingSystem->pointTracker.normalizeOriginalGrey();
-	}
-	catch (std::ios_base::failure &e) {
-		std::cout << e.what() << std::endl;
-	}
-	catch (std::exception &e) {
-		std::cout << e.what() << std::endl;
-	}
+	_initiatePointSelection = true;
 }
 
 void MainGazeTracker::clearPoints() {
-	if (_recording) {
-		*_commandOutputFile << _totalFrameCount << " CLEAR" << std::endl;
-	}
-
-	trackingSystem->pointTracker.clearTrackers();
-	_autoReload = false;
+	_initiatePointClearing = true;
 }
 
-void MainGazeTracker::pauseOrRepositionHead() {
-	if (Application::status == Application::STATUS_PAUSED) {
-		if (_recording) {
-			*_commandOutputFile << _totalFrameCount << " UNPAUSE" << std::endl;
-		}
 
-		Application::status = Application::isTrackerCalibrated ? Application::STATUS_CALIBRATED : Application::STATUS_IDLE;
-
-		trackingSystem->pointTracker.retrack(videoInput->frame, 2);
-		//choosePoints();
-	} else {
-		if (_recording) {
-			*_commandOutputFile << _totalFrameCount << " PAUSE" << std::endl;
-		}
-
-		Application::status = Application::STATUS_PAUSED;
-
-		_overlayImage = cvLoadImage("point-selection-frame.png", CV_LOAD_IMAGE_COLOR);
-		_face = FaceDetector::faceDetector.detect(_overlayImage);
-	}
-}
-
-void MainGazeTracker::extractFaceRegionRectangle(cv::Mat &frame, std::vector<Point> featurePoints) {
-	int minX = 10000;
-	int maxX = 0;
-	int minY = 10000;
-	int maxY = 0;
-
-	// Find the boundaries of the feature points
-	for (int i = 0; i < (int)featurePoints.size(); i++) {
-		minX = featurePoints[i].x < minX ? featurePoints[i].x : minX;
-		minY = featurePoints[i].y < minY ? featurePoints[i].y : minY;
-		maxX = featurePoints[i].x > maxX ? featurePoints[i].x : maxX;
-		maxY = featurePoints[i].y > maxY ? featurePoints[i].y : maxY;
-	}
-
-	int diffX = maxX - minX;
-	int diffY = maxY - minY;
-
-	minX -= 0.4 * diffX;
-	maxX += 0.4 * diffX;
-	minY -= 0.5 * diffY;
-	maxY += 0.5 * diffY;
-
-	Application::faceRectangle = new cv::Rect();
-	Application::faceRectangle->x = minX;
-	Application::faceRectangle->y = minY;
-	Application::faceRectangle->width = maxX - minX;
-	Application::faceRectangle->height = maxY - minY;
-}
 

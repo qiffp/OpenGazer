@@ -5,25 +5,7 @@
 #include "utils.h"
 #include "GaussianProcess.cpp"
 
-struct Targets {
-	std::vector<Point> targets;
-
-	Targets();
-	Targets(std::vector<Point> const &targets);
-	int getCurrentTarget(Point point);
-};
-
-struct CalTarget {
-	Point point;
-	Utils::SharedImage image;
-	Utils::SharedImage origImage;
-
-	CalTarget();
-	CalTarget(Point point, const cv::Mat *image, const cv::Mat *origImage);
-	void save(CvFileStorage *out, const char *name=NULL);
-	void load(CvFileStorage *in, CvFileNode *node);
-};
-
+/*
 struct TrackerOutput {
 	Point gazePoint;
 	Point gazePointLeft;
@@ -42,72 +24,52 @@ struct TrackerOutput {
 	//void setErrorOutput(bool show);
 	void setFrameId(int id);
 };
+*/
 
 class GazeTracker {
 	typedef MeanAdjustedGaussianProcess<Utils::SharedImage> ImProcess;
 
-	static const int _nnEyeWidth = 16;
-	static const int _nnEyeHeight = 8;
-
 public:
-	TrackerOutput output;
-	std::ostream* outputFile;
-
 	GazeTracker();
 	bool isActive();
 	void clear();
-	void addExemplar(Point point, const cv::Mat *eyeFloat, const cv::Mat *eyeGrey);
-	void addExemplarLeft(Point point, const cv::Mat *eyeFloat, const cv::Mat *eyeGrey);
-
-	// Neural network
-	void addSampleToNN(Point point, const cv::Mat *eyeFloat, const cv::Mat *eyeGrey);
-	void addSampleToNNLeft(Point point, const cv::Mat *eyeFloat, const cv::Mat *eyeGrey);
-	void trainNN();
+	void addExemplar();
 
 	// Calibration error removal
 	void removeCalibrationError(Point &estimate);
-	void boundToScreenCoordinates(Point &estimate);
-	void checkErrorCorrection();
+	void boundToScreenArea(Point &estimate);
 
-	void draw(cv::Mat &canvas, int eyeDX, int eyeDY);
-	void save();
-	void save(CvFileStorage *out, const char *name);
-	void load();
-	void load(CvFileStorage *in, CvFileNode *node);
-	void update(const cv::Mat *image, const cv::Mat *eyeGrey);
-	void updateLeft(const cv::Mat *image, const cv::Mat *eyeGrey);
+	void draw();
+	void process();
+	void updateEstimations();
+	
 	Point getTarget(int id);
 	int getTargetId(Point point);
 	void calculateTrainingErrors();
 	void printTrainingErrors();
 
 private:
+	std::vector<Utils::SharedImage> _calibrationTargetImages;
+	std::vector<Utils::SharedImage> _calibrationTargetImagesLeft;
+	std::vector<Point> _calibrationTargetPoints;
+	
+	std::vector<Utils::SharedImage> _calibrationTargetImagesAllFrames;
+	std::vector<Utils::SharedImage> _calibrationTargetImagesLeftAllFrames;
+	std::vector<Point> _calibrationTargetPointsAllFrames;
+	
 	boost::scoped_ptr<ImProcess> _gaussianProcessX;
 	boost::scoped_ptr<ImProcess> _gaussianProcessY;
-	std::vector<CalTarget> _calTargets;
-	boost::scoped_ptr<Targets> _targets;
 
 	// ONUR DUPLICATED CODE FOR LEFT EYE
 	boost::scoped_ptr<ImProcess> _gaussianProcessXLeft;
 	boost::scoped_ptr<ImProcess> _gaussianProcessYLeft;
-	std::vector<CalTarget> _calTargetsLeft;
-	//boost::scoped_ptr<Targets> _targetsLeft;
-
-	// Neural network
-	struct fann *_ANN;
-	struct fann *_ANNLeft;
-	int _inputCount;
-	int _inputCountLeft;
 
 	// Calibration error removal
 	double _betaX, _gammaX, _betaY, _gammaY, _sigv[100];	// Max 100 calibration points
 	double _xv[100][2], _fvX[100], _fvY[100];
 
-	cv::Mat *_nnEye;
-
 	static double imageDistance(const cv::Mat *image1, const cv::Mat *image2);
 	static double covarianceFunction(const Utils::SharedImage &image1, const Utils::SharedImage &image2);
 
 	void updateGaussianProcesses();
-	void updateGaussianProcessesLeft();
 };

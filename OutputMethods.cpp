@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include "OutputMethods.h"
+#include "Application.h"
 
 AbstractStore::~AbstractStore() {}
 
@@ -23,9 +24,9 @@ MmapStore::~MmapStore() {
 	close(_fileDescriptor);
 }
 
-void MmapStore::store(const TrackerOutput &output) {
-	_positionTable[0] = (int)output.gazePoint.x - 320;
-	_positionTable[1] = (int)output.gazePoint.y - 240;
+void MmapStore::store() {
+	_positionTable[0] = (int) ((Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x)/2) - 320;
+	_positionTable[1] = (int) ((Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y)/2) - 240;
 }
 
 StreamStore::StreamStore(std::ostream &stream):
@@ -35,8 +36,10 @@ StreamStore::StreamStore(std::ostream &stream):
 
 StreamStore::~StreamStore() {}
 
-void StreamStore::store(const TrackerOutput &output) {
-	_stream << (int)output.gazePoint.x << " " << (int)output.gazePoint.y << " -> " << output.targetId << std::endl;
+void StreamStore::store() {
+	_stream << (int) ((Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x)/2) << " " 
+			<< (int) ((Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y)/2) << " -> " 
+			<< Application::Components::testWindow->getPointFrameNo() + 1 << std::endl;
 	_stream.flush();
 }
 
@@ -51,47 +54,10 @@ SocketStore::~SocketStore(void) {
 	close(_mySocket);
 }
 
-void SocketStore::store(const TrackerOutput &output) {
+void SocketStore::store() {
 	std::ostringstream stream;
-	stream << "x " << (int)output.gazePoint.x << std::endl << "y " << (int)output.gazePoint.y << std::endl;
+	stream  << "x " << (int) ((Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x)/2) << std::endl 
+			<< "y " << (int) ((Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y)/2) << std::endl;
 	std::string str = stream.str();
 	sendto(_mySocket, str.c_str(), str.size(), 0, (sockaddr *)&_destAddr, sizeof(_destAddr));
 }
-
-WindowStore::WindowStore(const WindowPointer::PointerSpec &pointerSpec, const WindowPointer::PointerSpec &pointerSpecLeft, const WindowPointer::PointerSpec &targetSpec):
-	_pointer(pointerSpec),
-	_pointerLeft(pointerSpecLeft),
-	_target(targetSpec)
-{
-}
-
-void WindowStore::store(const TrackerOutput &output) {
-	int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-
-	if (numMonitors == 1) {
-		_pointer.setPosition((int)output.gazePoint.x, (int)output.gazePoint.y);
-		_pointerLeft.setPosition((int)output.gazePointLeft.x, (int)output.gazePointLeft.y);
-		_target.setPosition((int)output.target.x, (int)output.target.y);
-
-		//_pointer.setPosition((int)output.nnGazePoint.x, (int)output.nnGazePoint.y);
-		//_pointerLeft.setPosition((int)output.nnGazePointLeft.x, (int)output.nnGazePointLeft.y);
-		//_target.setPosition(0, 0);
-	} else {
-		Point gazePoint1, gazePoint2, targetPoint;
-
-		// Show Gaussian process outputs
-		Utils::mapToFirstMonitorCoordinates(output.gazePoint, gazePoint1);
-		Utils::mapToFirstMonitorCoordinates(output.gazePointLeft, gazePoint2);
-
-		// Show neural network results
-		//Utils::mapToFirstMonitorCoordinates(output.nnGazePoint, gazePoint1);
-		//Utils::mapToFirstMonitorCoordinates(output.nnGazePointLeft, gazePoint2);
-
-		Utils::mapToFirstMonitorCoordinates(output.target, targetPoint);
-
-		_pointer.setPosition((int)gazePoint1.x, (int)gazePoint1.y);
-		_pointerLeft.setPosition((int)gazePoint2.x, (int)gazePoint2.y);
-		_target.setPosition((int)targetPoint.x, (int)targetPoint.y);
-	}
-}
-

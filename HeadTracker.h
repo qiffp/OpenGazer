@@ -4,15 +4,14 @@
 
 class HeadTracker {
 public:
-	PointTracker &pointTracker;
 	double rotX;
 	double rotY;
 	double atX;
 	double atY;
 
-	HeadTracker(PointTracker &pointTracker);
-	void draw(cv::Mat &image);
-	void updateTracker();
+	HeadTracker();
+	void draw();
+	void process();
 
 private:
 	std::vector<double> _depths;

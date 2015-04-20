@@ -1,25 +1,20 @@
-#include "Calibrator.h"
+#include "TestWindow.h"
 #include "Application.h"
 
-Calibrator::Calibrator() {
-	Application::Components::gazeTracker->clear();
-	
+TestWindow::TestWindow() {
 	_frameNumber = -1;
-	needRecalibration = false;
 	
 	_screenImage.create(cv::Size(_window.size().width(), _window.size().height()), CV_8UC3);
 	_targetImage = cv::imread("./target.png", CV_LOAD_IMAGE_COLOR);
 	_window.setWindowTitle("Opengazer");
 }
 
-Calibrator::~Calibrator() {}
+TestWindow::~TestWindow() {}
 
 // Main processing function
-void Calibrator::process() {
+void TestWindow::process() {
 	if(!isActive())
 		return;
-	
-	needRecalibration = false;
 	
 	// Increment the frame counter
 	_frameNumber++;
@@ -27,29 +22,24 @@ void Calibrator::process() {
 	if (shouldStartNextPoint()) {
 		pointStart();
 	} else {
-		if (isLastFrame()) {
-			pointEnd();
-		}
-		
 		if (isFinished()) {
-			calibrationEnded();
+			testingEnded();
 		}
 	}
 }
 
 
-// Start calibration procedure. Reset frame counter and save target point
-// locations
-void Calibrator::start(const std::vector<Point> &points) {
+// Start testing procedure. Reset frame counter and save target point locations
+void TestWindow::start(const std::vector<Point> &points) {
 	_points = points;
 	_frameNumber = 0;
 	_window.show();
-	Application::Data::calibrationTargets.clear();
-	Application::status = Application::STATUS_CALIBRATING;
+	
+	Application::status = Application::STATUS_TESTING;
 }
 
 // Displays the next target on screen
-void Calibrator::pointStart() {
+void TestWindow::pointStart() {
 	// Get the current target
 	Point target = getActivePoint();
 	
@@ -86,31 +76,25 @@ void Calibrator::pointStart() {
 	_window.showImage(_screenImage);
 }
 
-void Calibrator::pointEnd() {
-	Application::Data::calibrationTargets.push_back(getActivePoint());
-	needRecalibration = true;
-}
-
 // Aborts calibration
-void Calibrator::abortCalibration() {
+void TestWindow::abortTesting() {
 	_window.hide();
 	_frameNumber = -1;
 }
 
-void Calibrator::calibrationEnded() {
+void TestWindow::testingEnded() {
 	_window.hide();
 	_frameNumber = -1;
 	Application::status = Application::STATUS_CALIBRATED;
-	Application::isTrackerCalibrated = true;
 }
 
 // Checks if calibrator is active
-bool Calibrator::isActive() {
+bool TestWindow::isActive() {
 	return _frameNumber >= 0;
 }
 
 // Returns current point's coordinates
-Point Calibrator::getActivePoint() {
+Point TestWindow::getActivePoint() {
 	if(isActive())
 		return _points[getPointNumber()];
 	else
@@ -118,39 +102,39 @@ Point Calibrator::getActivePoint() {
 }
 
 // Returns the index of current point
-int Calibrator::getPointNumber() {
+int TestWindow::getPointNumber() {
 	if(isActive())
-		return (_frameNumber-1) / Application::dwelltimeParameter;
+		return (_frameNumber-1) / Application::testDwelltimeParameter;
 	else
 		return -1;
 }
 
 // Returns the frame number for the current point
-int Calibrator::getPointFrameNo() {
-	return (_frameNumber-1) % Application::dwelltimeParameter;
+int TestWindow::getPointFrameNo() {
+	return (_frameNumber-1) % Application::testDwelltimeParameter;
 }
 
 // 
-bool Calibrator::isLastFrame() {
-	return getPointFrameNo() == (Application::dwelltimeParameter-1);
+bool TestWindow::isLastFrame() {
+	return getPointFrameNo() == (Application::testDwelltimeParameter-1);
 }
 
 // Checks if current point is the last
-bool Calibrator::isLastPoint() {
+bool TestWindow::isLastPoint() {
 	return getPointNumber() == (_points.size() - 1);
 }
 
 // Checks if calibration is finished
-bool Calibrator::isFinished() {
+bool TestWindow::isFinished() {
 	return getPointNumber() >= _points.size();
 }
 
 // Decides whether calibrator should switch to next point (display it on screen)
-bool Calibrator::shouldStartNextPoint() {
+bool TestWindow::shouldStartNextPoint() {
 	return (getPointFrameNo() == 0) && !isFinished();
 }
 
-void Calibrator::draw() {
+void TestWindow::draw() {
 	if(isActive()) {
 		Point activePoint = getActivePoint();
 		

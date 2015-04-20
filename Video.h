@@ -6,10 +6,14 @@ class VideoInput {
 private:
 	cv::VideoCapture _capture;
 	long _lastFrameTime;
-
+	
+	void prepareDebugFrame();
+	void copyToDebugFrame();
+	
 public:
 	int frameCount;
 	cv::Mat frame;
+	cv::Mat debugFrame;
 	cv::Size size;
 	bool captureFromVideo;
 	std::string resolutionParameter;

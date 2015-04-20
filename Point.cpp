@@ -36,11 +36,20 @@ int Point::closestPoint(const std::vector<Point> &points) const {
     if (points.empty()) {
 		return -1;
 	}
-
-	std::vector<double> distances(points.size());
-    transform(points.begin(), points.end(), distances.begin(), sigc::mem_fun(*this, &Point::distance));
-
-    return min_element(distances.begin(), distances.end()) - distances.begin();
+	
+	double minDistance = 10000;
+	int minIndex = 0;
+	
+	for(int i=0; i<points.size(); i++) {
+		double tempDistance = this->distance(points[i]);
+		
+		if(tempDistance < minDistance) {
+			minDistance = tempDistance;
+			minIndex = 0;
+		}
+	}
+	
+    return minIndex;
 }
 
 void Point::save(CvFileStorage *out, const char *name) const {
@@ -53,10 +62,6 @@ void Point::save(CvFileStorage *out, const char *name) const {
 void Point::load(CvFileStorage *in, CvFileNode *node) {
     x = cvReadRealByName(in, node, "x");
     y = cvReadRealByName(in, node, "y");
-}
-
-CvPoint Point::cvPoint() const {
-	return ::cvPoint(cvRound(x), cvRound(y));
 }
 
 CvPoint2D32f Point::cvPoint32() const {

@@ -2,6 +2,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "utils.h"
+#include "Application.h"
 
 namespace Utils {
 	boost::shared_ptr<cv::Mat> createImage(const CvSize &size, int type) {
@@ -13,72 +14,92 @@ namespace Utils {
 		image->release();
 	}
 
+	cv::Rect* getMonitorGeometryByIndex(int screenIndex) {
+		QDesktopWidget* desktop = QApplication::desktop();
+		
+		return new cv::Rect(desktop->availableGeometry(screenIndex).x(), 
+						desktop->availableGeometry(screenIndex).y(), 
+						desktop->availableGeometry(screenIndex).width(), 
+						desktop->availableGeometry(screenIndex).height());
+	}
+	
+	cv::Rect* getMainMonitorGeometry() {
+		QDesktopWidget* desktop = QApplication::desktop();
+		
+		// Return last monitor geometry
+		//return getMonitorGeometryByIndex(desktop->screenCount());
+		
+		// For replaying experiment videos, return false geometry for 1920x1080 monitor
+		return new cv::Rect(0, 0, 1920, 1080);
+	}
+	
+	cv::Rect* getDebugMonitorGeometry() {
+		// Return default monitor geometry
+		return getMonitorGeometryByIndex(-1);
+	}
+	
 	void mapToFirstMonitorCoordinates(Point monitor2Point, Point &monitor1Point) {
-		int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-		Gdk::Rectangle monitor1Geometry;
-		Gdk::Rectangle monitor2Geometry;
-		Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
+		cv::Rect *monitor1Geometry = Utils::getDebugMonitorGeometry();
+		cv::Rect *monitor2Geometry = Utils::getMainMonitorGeometry();
+		
+		monitor1Point.x = (monitor2Point.x / monitor2Geometry->width) * (monitor1Geometry->width - 40) + monitor1Geometry->x;
+		monitor1Point.y = (monitor2Point.y / monitor2Geometry->height) * monitor1Geometry->height + monitor1Geometry->y;
+	}
+	
+	cv::Point mapFromVideoToDebugCoordinates(cv::Point point) {
+		double factor  = Application::Components::videoInput->debugFrame.size().width / (double) Application::Components::videoInput->frame.size().width;
+		
+		return cv::Point(factor*point.x, factor*point.y);
+	}
 
-		screen->get_monitor_geometry(0, monitor1Geometry);
-		screen->get_monitor_geometry(numMonitors - 1, monitor2Geometry);
+	cv::Point mapFromMainScreenToDebugCoordinates(cv::Point point) {
+		cv::Rect *geometry = Utils::getMainMonitorGeometry();
+		double xFactor  = Application::Components::videoInput->debugFrame.size().width / (double) geometry->width;
+		double yFactor  = Application::Components::videoInput->debugFrame.size().height / (double) geometry->height;
 
-		monitor1Point.x = (monitor2Point.x / monitor2Geometry.get_width()) * (monitor1Geometry.get_width() - 40) + monitor1Geometry.get_x();
-		monitor1Point.y = (monitor2Point.y / monitor2Geometry.get_height()) * monitor1Geometry.get_height() + monitor1Geometry.get_y();
+		return cv::Point(xFactor*point.x, yFactor*point.y);
 	}
 
 
 	void mapToVideoCoordinates(Point monitor2Point, double resolution, Point &videoPoint, bool reverseX) {
-		int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-		Gdk::Rectangle monitor1Geometry(0, 0, 1280, 720);
-		Gdk::Rectangle monitor2Geometry;
-		Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-
-		screen->get_monitor_geometry(numMonitors - 1, monitor2Geometry);
-
+		cv::Rect *monitor1Geometry = new cv::Rect(0, 0, 1280, 720);
+		cv::Rect *monitor2Geometry = Utils::getMainMonitorGeometry();
+		
 		if (resolution == 480) {
-			monitor1Geometry.set_width(640);
-			monitor1Geometry.set_height(480);
+			monitor1Geometry->width = 640;
+			monitor1Geometry->height = 480;
 		} else if (resolution == 1080) {
-			monitor1Geometry.set_width(1920);
-			monitor1Geometry.set_height(1080);
+			monitor1Geometry->width = 1920;
+			monitor1Geometry->height = 1080;
 		}
 
 		if (reverseX) {
-			videoPoint.x = monitor1Geometry.get_width() - (monitor2Point.x / monitor2Geometry.get_width()) * monitor1Geometry.get_width();
+			videoPoint.x = monitor1Geometry->width - (monitor2Point.x / monitor2Geometry->width) * monitor1Geometry->width;
 		} else {
-			videoPoint.x = (monitor2Point.x / monitor2Geometry.get_width()) * monitor1Geometry.get_width();
+			videoPoint.x = (monitor2Point.x / monitor2Geometry->width) * monitor1Geometry->width;
 		}
 
-		videoPoint.y = (monitor2Point.y / monitor2Geometry.get_height()) * monitor1Geometry.get_height();
+		videoPoint.y = (monitor2Point.y / monitor2Geometry->height) * monitor1Geometry->height;
 	}
 
 	// Neural network
 	void mapToNeuralNetworkCoordinates(Point point, Point &nnPoint) {
-		int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-		Gdk::Rectangle monitor1Geometry(0, 0, 1, 1);
-		Gdk::Rectangle monitor2Geometry;
-		Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-
-		screen->get_monitor_geometry(numMonitors - 1, monitor2Geometry);
-
-		nnPoint.x = ((point.x - monitor2Geometry.get_x()) / monitor2Geometry.get_width()) * monitor1Geometry.get_width() + monitor1Geometry.get_x();
-		nnPoint.y = ((point.y - monitor2Geometry.get_y()) / monitor2Geometry.get_height()) * monitor1Geometry.get_height() + monitor1Geometry.get_y();
+		cv::Rect *monitor1Geometry = new cv::Rect(0, 0, 1, 1);
+		cv::Rect *monitor2Geometry = Utils::getMainMonitorGeometry();
+		
+		nnPoint.x = ((point.x - monitor2Geometry->x) / monitor2Geometry->width) * monitor1Geometry->width + monitor1Geometry->x;
+		nnPoint.y = ((point.y - monitor2Geometry->y) / monitor2Geometry->height) * monitor1Geometry->height + monitor1Geometry->y;
 
 		//cout << "ORIG: " << point.x << ", " << point.y << " MAP: " << nnPoint.x << ", " << nnPoint.y << endl;
 	}
 
 
 	void mapFromNeuralNetworkToScreenCoordinates(Point nnPoint, Point &point) {
-		int numMonitors = Gdk::Screen::get_default()->get_n_monitors();
-		Gdk::Rectangle monitor1Geometry;
-		Gdk::Rectangle monitor2Geometry(0, 0, 1, 1);
-		Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-
-		// Geometry of main monitor
-		screen->get_monitor_geometry(numMonitors - 1, monitor1Geometry);
-
-		point.x = ((nnPoint.x - monitor2Geometry.get_x()) / monitor2Geometry.get_width()) * monitor1Geometry.get_width() + monitor1Geometry.get_x();
-		point.y = ((nnPoint.y - monitor2Geometry.get_y()) / monitor2Geometry.get_height()) * monitor1Geometry.get_height() + monitor1Geometry.get_y();
+		cv::Rect *monitor1Geometry = Utils::getMainMonitorGeometry();
+		cv::Rect *monitor2Geometry = new cv::Rect(0, 0, 1, 1);
+		
+		point.x = ((nnPoint.x - monitor2Geometry->x) / monitor2Geometry->width) * monitor1Geometry->width + monitor1Geometry->x;
+		point.y = ((nnPoint.y - monitor2Geometry->y) / monitor2Geometry->height) * monitor1Geometry->height + monitor1Geometry->y;
 
 		//cout << "ORIG: " << point.x << ", " << point.y << " MAP: " << nnPoint.x << ", " << nnPoint.y << endl;
 	}
@@ -111,6 +132,39 @@ namespace Utils {
 
 		// Return the next serial number
 		return directory + "/" + baseFileName +  "_" + boost::lexical_cast<std::string>(maximumExistingNumber + 1) + ".txt";
+	}
+	
+	
+	std::vector<Point> readAndScalePoints(std::ifstream &in) {
+		cv::Rect *rect = getMainMonitorGeometry();
+		
+		return scaled(loadPoints(in), rect->width, rect->height);
+	}
+	
+	std::vector<Point> loadPoints(std::ifstream &in) {
+		std::vector<Point> result;
+
+		for(;;) {
+			double x, y;
+			in >> x >> y;
+			if (in.rdstate()) {
+				// break if any error
+				break;
+			}
+			result.push_back(Point(x, y));
+		}
+
+		return result;
+	}
+	
+	std::vector<Point> scaled(const std::vector<Point> &points, double x, double y) {
+		std::vector<Point> result;
+
+		xForEach(iter, points) {
+			result.push_back(Point(iter->x * x, iter->y * y));
+		}
+
+		return result;
 	}
 
 	// Normalize by making mean and standard deviation equal in all images

@@ -3,10 +3,10 @@
 #include "ImageWindow.h"
 #include "Point.h"
 
-class Calibrator {
+class TestWindow {
 public:
-	Calibrator();
-	~Calibrator();
+	TestWindow();
+	~TestWindow();
 	
 	// Main processing function
 	void process();
@@ -15,8 +15,8 @@ public:
 	void start(const std::vector<Point> &points);
 	void pointStart();
 	void pointEnd();
-	void abortCalibration();
-	void calibrationEnded();
+	void abortTesting();
+	void testingEnded();
 	void draw();
 	
 	bool isActive();
@@ -27,8 +27,6 @@ public:
 	bool isLastPoint();
 	bool isFinished();
 	bool shouldStartNextPoint();
-	
-	bool needRecalibration;
 	
 private:
 	int _frameNumber;

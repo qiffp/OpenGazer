@@ -1,30 +1,39 @@
 #pragma once
 
-#include "PointTracker.h"
 #include "BlinkDetector.h"
+#include "FeatureDetector.h"
 
 class EyeExtractor {
 public:
 	static const int eyeDX;
 	static const int eyeDY;
 	static const cv::Size eyeSize;
+	
+	boost::scoped_ptr<FeatureDetector> averageEye;
+	boost::scoped_ptr<FeatureDetector> averageEyeLeft;
 
 	boost::scoped_ptr<cv::Mat> eyeGrey, eyeFloat, eyeImage;
 	boost::scoped_ptr<cv::Mat> eyeGreyLeft, eyeFloatLeft, eyeImageLeft;
 	
-	EyeExtractor(const PointTracker &pointTracker);
+	EyeExtractor();
 	~EyeExtractor();
-	void extractEyes(const cv::Mat originalImage);
+	void process();
 	bool isBlinking();
+	bool hasValidSample();
+	void draw();
 
+	void start();
+	void pointStart();
+	void pointEnd();
+	void abortCalibration();
+	void calibrationEnded();
+	
 private:
-	const PointTracker &_pointTracker; /* dangerous */
 	BlinkDetector _blinkDetector;
 	BlinkDetector _blinkDetectorLeft;
 	bool _isBlinking;
 
-	void extractEye(const cv::Mat originalImage) throw (TrackingException);
-	void extractEyeLeft(const cv::Mat originalImage) throw (TrackingException);
-	void processEyes();
+	void extractEye(const cv::Mat originalImage);
+	void extractEyeLeft(const cv::Mat originalImage);
 };
 

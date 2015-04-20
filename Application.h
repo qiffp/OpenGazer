@@ -1,6 +1,16 @@
 #pragma once
 
+#include <fstream>
+
 #include "OutputMethods.h"
+#include "Video.h"
+#include "Calibrator.h"
+#include "DebugWindow.h"
+#include "HeadCompensation.h"
+#include "PointTracker.h"
+#include "EyeExtractor.h"
+#include "MainGazeTracker.h"
+#include "TestWindow.h"
 
 namespace Application {
 	// Tracker status
@@ -17,7 +27,44 @@ namespace Application {
 	extern int dwelltimeParameter;
 	extern int testDwelltimeParameter;
 	extern int sleepParameter;
-	extern cv::Rect *faceRectangle;
+	extern std::ofstream resultsOutputFile;
+	
+	
+	namespace Settings {
+		extern bool videoOverlays;
+		extern bool recording;
+	}
+
+	namespace Components {
+		extern boost::scoped_ptr<VideoInput> videoInput;
+		extern boost::scoped_ptr<VideoWriter> video;
+		
+		extern MainGazeTracker *mainTracker;
+		
+		extern PointTracker *pointTracker;
+		extern EyeExtractor *eyeExtractor;
+		extern GazeTracker *gazeTracker;
+		extern HeadTracker *headTracker;
+		extern HeadCompensation *headCompensation;
+		extern Calibrator *calibrator;
+		
+		extern DebugWindow *debugWindow;
+		extern TestWindow *testWindow;
+	}
+
+	namespace Data {
+		extern std::vector<Point> calibrationTargets;
+		
+		// Outputs for Gaussian Process estimator
+		extern Point gazePointGP;
+		extern Point gazePointGPLeft;
+
+		// Outputs for Neural Network estimator
+		extern Point gazePointNN;
+		extern Point gazePointNNLeft;
+
+
+	}
 
 	std::vector<boost::shared_ptr<AbstractStore> > getStores();
 }

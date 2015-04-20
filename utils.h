@@ -4,6 +4,10 @@
 
 #include "Point.h"
 
+#include <QApplication>
+#include <QDesktopWidget>
+#include <QMainWindow>
+
 namespace Utils {
 	typedef boost::shared_ptr<const cv::Mat> SharedImage;
 
@@ -55,14 +59,6 @@ namespace Utils {
 	}
 
 	#define debugTee(x) teeFunction(x, #x ": ")
-
-	template <class T> void saveVector(CvFileStorage *out, const char *name, std::vector<T> &vec) {
-		cvStartWriteStruct(out, name, CV_NODE_SEQ);
-		for (int i = 0; i < vec.size(); i++) {
-			vec[i].save(out);
-		}
-		cvEndWriteStruct(out);
-	}
 
 	template <class T> std::vector<T> loadVector(CvFileStorage *in, CvFileNode *node) {
 		CvSeq *seq = node->data.seq;
@@ -148,13 +144,25 @@ namespace Utils {
 	boost::shared_ptr<cv::Mat> createImage(const CvSize &size, int type);
 	void releaseImage(cv::Mat *image);
 
+	cv::Rect* getMonitorGeometryByIndex(int screenIndex);
+	cv::Rect* getMainMonitorGeometry();
+	cv::Rect* getDebugMonitorGeometry();
+	
 	void mapToFirstMonitorCoordinates(Point monitor2Point, Point &monitor1Point);
+	cv::Point mapFromVideoToDebugCoordinates(cv::Point point);
+	cv::Point mapFromMainScreenToDebugCoordinates(cv::Point point);
+	
 	void mapToVideoCoordinates(Point monitor2Point, double resolution, Point &videoPoint, bool reverseX=true);
 	void mapToNeuralNetworkCoordinates(Point point, Point &nnPoint);
 	void mapFromNeuralNetworkToScreenCoordinates(Point nnPoint, Point &point);
 
 	std::string getUniqueFileName(std::string directory, std::string baseFileName);
-
+	
+	// Functions for reading calibration and testing targets
+	std::vector<Point> readAndScalePoints(std::ifstream &in);
+	std::vector<Point> loadPoints(std::ifstream &in);
+	std::vector<Point> scaled(const std::vector<Point> &points, double x, double y);
+	
 	void normalizeGrayScaleImage(cv::Mat *image, double standardMean=127, double standardStd=50);
 	//void normalizeGrayScaleImage2(cv::Mat *image, double standardMean=127, double standardStd=50);
 

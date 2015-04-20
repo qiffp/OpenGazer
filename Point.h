@@ -14,7 +14,6 @@ struct Point {
 	int closestPoint(const std::vector<Point> &points) const;
 	void save(CvFileStorage *out, const char *name) const;
 	void load(CvFileStorage *in, CvFileNode *node);
-	CvPoint cvPoint() const;
 	CvPoint2D32f cvPoint32() const;
 
 	void operator=(CvPoint2D32f const &point);

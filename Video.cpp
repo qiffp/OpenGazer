@@ -1,9 +1,10 @@
 #include <sys/time.h>
 
 #include "Video.h"
+#include "utils.h"
 
 VideoInput::VideoInput():
-	frameCount(0),
+	frameCount(1),
 	captureFromVideo(false),
 	resolutionParameter(0),
 	_capture(cv::VideoCapture(0))
@@ -15,10 +16,12 @@ VideoInput::VideoInput():
 	_capture.read(frame);
 	size = cv::Size(frame.size().width, frame.size().height);
 	flip(frame, frame, 1);
+	
+	prepareDebugFrame();
 }
 
 VideoInput::VideoInput(std::string resolution):
-	frameCount(0),
+	frameCount(1),
 	captureFromVideo(false),
 	resolutionParameter(resolution),
 	_capture(cv::VideoCapture(0))
@@ -43,11 +46,13 @@ VideoInput::VideoInput(std::string resolution):
 	_capture.read(frame);
 	size = cv::Size(frame.size().width, frame.size().height);
 	flip(frame, frame, 1);
+	
+	prepareDebugFrame();
 }
 
 VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy):
 	_capture(cv::VideoCapture(filename.c_str())),
-	frameCount(0),
+	frameCount(1),
 	captureFromVideo(true),
 	resolutionParameter(resolution)
 {
@@ -89,6 +94,8 @@ VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy)
 
 		std::cout << "Successfully resized first frame" << std::endl;
 	}
+	
+	prepareDebugFrame();
 }
 
 VideoInput::~VideoInput() {
@@ -118,10 +125,48 @@ void VideoInput::updateFrame() {
 			_capture.read(frame);
 		}
 	}
+	
+	if(frame.empty()) {
+		throw Utils::QuitNow();
+	}
 
 	if (!captureFromVideo) {
 		flip(frame, frame, 1);
 	}
+	
+	copyToDebugFrame();
+}
+
+void VideoInput::prepareDebugFrame() {
+	cv::Rect *geometry = Utils::getDebugMonitorGeometry();
+	
+	int width = geometry->width;
+	int height = geometry->height;
+	
+	double screenAspectRatio = width / (double) height;
+	double frameAspectRatio = size.width / (double) size.height;
+	
+	if(screenAspectRatio > frameAspectRatio) {
+		// Screen is wider than necessary, height is the bounding factor
+		width = frameAspectRatio * height;
+	} else {
+		// Screen is narrower, width is the bounding factor
+		height = (int) (width / frameAspectRatio);
+	}
+	
+	std::cout << "Aspect ratios: " << screenAspectRatio << ", " << frameAspectRatio << std::endl;
+	std::cout << "Width and height: " << width << ", " << height << std::endl << std::endl << std::endl;
+	
+	debugFrame.create(cv::Size(width, height), CV_8UC3);
+	
+	std::cout << "Frame size: " << frame.size().width << "x" << frame.size().height << std::endl;
+	std::cout << "Debug Frame size: " << debugFrame.size().width << "x" << debugFrame.size().height << std::endl;
+	
+	copyToDebugFrame();
+}
+
+void VideoInput::copyToDebugFrame() {
+	cv::resize(frame, debugFrame, debugFrame.size());
 }
 
 // Returns 480 or 720 depending on camera resolution
