@@ -2,7 +2,7 @@
 #			qmake -spec macx-g++ opengazer.pro
 
 CONFIG	+=	qt
-QT += gui
+QT += gui widgets
 
 HEADERS += 	Calibrator.h HeadTracker.h LeastSquares.h EyeExtractor.h GazeTracker.h MainGazeTracker.h OutputMethods.h PointTracker.h FaceDetector.h Point.h utils.h BlinkDetector.h FeatureDetector.h mir.h DebugWindow.h Application.h Video.h Detection.h Command.h ImageWindow.h ImageWidget.h TestWindow.h Prefix.hpp HeadCompensation.h
 
@@ -12,15 +12,17 @@ TARGET  = 	opengazer
 
 QMAKE_CFLAGS 	+= `pkg-config opencv --cflags` -include Prefix.hpp
 QMAKE_CXXFLAGS 	+= `pkg-config opencv --cflags` -include Prefix.hpp
-QMAKE_LFLAGS 	+= `pkg-config opencv --libs`
+QMAKE_LIBS 	+= `pkg-config opencv --libs`
 
 macx {
 	# Mac OS X linker parameters and include directories
-	QMAKE_LFLAGS += -L/opt/local/lib -lm -ldl -lgthread-2.0 -lfann -lboost_filesystem-mt -lboost_system-mt -lgsl -lgslcblas
+	QMAKE_LIBS += -L/opt/local/lib -lm -ldl -lgthread-2.0 -lfann -lboost_filesystem-mt -lboost_system-mt -lgsl -lgslcblas
 }
 
 unix:!macx {
 	# Linux linker parameters and include directories
-	QMAKE_LFLAGS += -L/usr/local/lib -L/opt/local/lib -lm -ldl -lgthread-2.0 -lfann -lboost_filesystem -lboost_system -lgsl -lgslcblas
+	QMAKE_LIBS += -L/usr/local/lib -L/opt/local/lib -lm -ldl -lgthread-2.0 -lfann -lboost_filesystem -lboost_system -lgsl -lgslcblas
+	QMAKE_LIBS += -L/usr/local/cuda-6.5/lib64/ -lGLEW
+
 	INCLUDEPATH += /usr/local/include
 }

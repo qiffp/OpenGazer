@@ -27,15 +27,18 @@ namespace Utils {
 		QDesktopWidget* desktop = QApplication::desktop();
 		
 		// Return last monitor geometry
-		//return getMonitorGeometryByIndex(desktop->screenCount());
+		return getMonitorGeometryByIndex(desktop->screenCount());
 		
 		// For replaying experiment videos, return false geometry for 1920x1080 monitor
-		return new cv::Rect(0, 0, 1920, 1080);
+		//return new cv::Rect(0, 0, 1920, 1080);
 	}
 	
 	cv::Rect* getDebugMonitorGeometry() {
 		// Return default monitor geometry
 		return getMonitorGeometryByIndex(-1);
+
+		// For using a smaller debug screen, override the debug monitor resolution
+		//return new cv::Rect(0, 0, 640, 480);
 	}
 	
 	void mapToFirstMonitorCoordinates(Point monitor2Point, Point &monitor1Point) {

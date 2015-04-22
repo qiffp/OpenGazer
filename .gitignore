@@ -1,6 +1,6 @@
 outputs/*.txt_
 outputs/*.txt
 opengazer
-point-selection-frame.png
+moc_*.cpp
 *.o
 *.gch
