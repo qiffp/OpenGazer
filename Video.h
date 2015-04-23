@@ -12,6 +12,7 @@ private:
 	
 public:
 	int frameCount;
+	double frameRate;
 	cv::Mat frame;
 	cv::Mat debugFrame;
 	cv::Size size;

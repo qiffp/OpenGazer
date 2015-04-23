@@ -1,5 +1,6 @@
 #include <QObject>
 #include <QShortcut>
+#include <QString>
 
 #include "DebugWindow.h"
 #include "Application.h"
@@ -27,6 +28,7 @@ DebugWindow::~DebugWindow() {}
 // Main processing function
 void DebugWindow::display() {
 	_window.showImage(Application::Components::videoInput->debugFrame);
+	_window.setWindowTitle("Opengazer (" + QString::number(Application::Components::videoInput->frameRate, 'g', 4) + " fps)");
 }
 
 

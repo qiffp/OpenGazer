@@ -16,6 +16,8 @@
 #include "DebugWindow.h"
 #include "TestWindow.h"
 
+#include "HiResTimer.h"
+
 MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	_stores(Application::getStores()),
 	_commandIndex(-1),
@@ -195,7 +197,7 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	
 	// Create timer for initiating main loop
 	connect(&_timer, SIGNAL (timeout()), this, SLOT (process()));
-	_timer.start(100);
+	_timer.start(1);
 }
 
 MainGazeTracker::~MainGazeTracker() {
@@ -204,6 +206,7 @@ MainGazeTracker::~MainGazeTracker() {
 
 void MainGazeTracker::process() {
 	Application::Components::videoInput->updateFrame();
+
 	const cv::Mat frame = Application::Components::videoInput->frame;
 
 	// Wait a little so that the marker stays on the screen for a longer time

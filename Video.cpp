@@ -1,10 +1,12 @@
 #include <sys/time.h>
 
 #include "Video.h"
+#include "HiResTimer.h"
 #include "utils.h"
 
 VideoInput::VideoInput():
 	frameCount(1),
+	frameRate(0),
 	captureFromVideo(false),
 	resolutionParameter(0),
 	_capture(cv::VideoCapture(0))
@@ -14,6 +16,7 @@ VideoInput::VideoInput():
 	_lastFrameTime = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 
 	_capture.read(frame);
+	
 	size = cv::Size(frame.size().width, frame.size().height);
 	flip(frame, frame, 1);
 	
@@ -22,6 +25,7 @@ VideoInput::VideoInput():
 
 VideoInput::VideoInput(std::string resolution):
 	frameCount(1),
+	frameRate(0),
 	captureFromVideo(false),
 	resolutionParameter(resolution),
 	_capture(cv::VideoCapture(0))
@@ -46,13 +50,14 @@ VideoInput::VideoInput(std::string resolution):
 	_capture.read(frame);
 	size = cv::Size(frame.size().width, frame.size().height);
 	flip(frame, frame, 1);
-	
+
 	prepareDebugFrame();
 }
 
 VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy):
 	_capture(cv::VideoCapture(filename.c_str())),
 	frameCount(1),
+	frameRate(0),
 	captureFromVideo(true),
 	resolutionParameter(resolution)
 {
@@ -103,8 +108,21 @@ VideoInput::~VideoInput() {
 }
 
 void VideoInput::updateFrame() {
+	static HiResTimer timer;
+
+	// Start the timer for fps calculations
+	if(frameCount == 1)
+		timer.start();
+
 	static double trackerResolution = frame.size().height;
 	frameCount++;
+
+	// Every 20 frames, calculate the fps and reset timer
+	if(frameCount % 20 == 0) {
+		timer.stop();
+		frameRate = (double) 20 / (timer.getElapsedTime()/1000.0);
+		timer.start();
+	}
 
 	if (!(captureFromVideo && frameCount == 1)) {
 		// If capturing from video and video size is not equal to desired resolution, carry on with resizing

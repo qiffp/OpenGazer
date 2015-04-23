@@ -20,8 +20,13 @@ QSize ImageWidget::minimumSizeHint() {
 }
 
 void ImageWidget::showImage(cv::Mat& image) {
-	cv::resize(image, _tmp, _tmp.size());
-	cv::cvtColor(_tmp, _tmp, CV_RGB2BGR);
+	if(image.size().width == _tmp.size().width && image.size().height == _tmp.size().height) {
+		cv::cvtColor(image, _tmp, CV_RGB2BGR);
+	}
+	else {
+		cv::resize(image, _tmp, _tmp.size());
+		cv::cvtColor(_tmp, _tmp, CV_RGB2BGR);		
+	}
 
 	// QImage needs the data to be stored continuously in memory
 	assert(_tmp.isContinuous());
