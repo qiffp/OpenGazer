@@ -7,10 +7,15 @@
 #include "Calibrator.h"
 #include "DebugWindow.h"
 #include "HeadCompensation.h"
+#include "GazeTrackerHistogramFeatures.h"
 #include "PointTracker.h"
 #include "EyeExtractor.h"
+#include "EyeExtractorSegmentationGroundTruth.h"
+#include "ExtractEyeFeaturesSegmentation.h"
+#include "EyeCenterDetector.h"
 #include "MainGazeTracker.h"
 #include "TestWindow.h"
+#include "GoogleGlassWindow.h"
 
 namespace Application {
 	// Tracker status
@@ -43,13 +48,18 @@ namespace Application {
 		
 		extern PointTracker *pointTracker;
 		extern EyeExtractor *eyeExtractor;
+		extern EyeExtractorSegmentationGroundTruth *eyeExtractorSegmentationGroundTruth;
+		extern ExtractEyeFeaturesSegmentation *eyeSegmentation;
+		extern EyeCenterDetector *eyeCenterDetector;
 		extern GazeTracker *gazeTracker;
+		extern GazeTrackerHistogramFeatures *gazeTrackerHistogramFeatures;
 		extern HeadTracker *headTracker;
 		extern HeadCompensation *headCompensation;
 		extern Calibrator *calibrator;
 		
 		extern DebugWindow *debugWindow;
 		extern TestWindow *testWindow;
+		extern GoogleGlassWindow *googleGlassWindow;
 	}
 
 	namespace Data {
@@ -58,6 +68,10 @@ namespace Application {
 		// Outputs for Gaussian Process estimator
 		extern Point gazePointGP;
 		extern Point gazePointGPLeft;
+
+		// Outputs for Histogram Features Gaussian Process estimator
+		extern Point gazePointHistFeaturesGP;
+		extern Point gazePointHistFeaturesGPLeft;
 
 		// Outputs for Neural Network estimator
 		extern Point gazePointNN;

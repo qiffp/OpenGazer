@@ -6,6 +6,7 @@
 #include "PointTracker.h"
 #include "EyeExtractor.h"
 #include "GazeTracker.h"
+#include "GazeTrackerHistogramFeatures.h"
 #include "HeadTracker.h"
 #include "HeadCompensation.h"
 
@@ -169,7 +170,7 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	Application::resultsOutputFile << "--subject=" << subject << std::endl << std::endl;
 
 	// Finally the screen resolution
-	cv::Rect *rect = Utils::getMainMonitorGeometry();
+	cv::Rect *rect = Utils::getSecondaryMonitorGeometry();
 	
 	Application::resultsOutputFile << "Screen resolution: " << rect->width << " x " << rect->height << " (Position: "<< rect->x << ", "<< rect->y << ")" << std::endl << std::endl;
 	Application::resultsOutputFile.flush();
@@ -185,13 +186,21 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	// Create system components
 	Application::Components::pointTracker = new PointTracker(Application::Components::videoInput->size);
 	Application::Components::eyeExtractor = new EyeExtractor();
+	Application::Components::eyeExtractorSegmentationGroundTruth = new EyeExtractorSegmentationGroundTruth();
+	Application::Components::eyeSegmentation = new ExtractEyeFeaturesSegmentation();
+	Application::Components::eyeCenterDetector = new EyeCenterDetector();
 	Application::Components::gazeTracker = new GazeTracker();
+	Application::Components::gazeTrackerHistogramFeatures = new GazeTrackerHistogramFeatures();
 	Application::Components::headTracker = new HeadTracker();
 	Application::Components::headCompensation = new HeadCompensation();
 	Application::Components::calibrator = new Calibrator();
-	Application::Components::debugWindow = new DebugWindow();
 	Application::Components::testWindow = new TestWindow();
+	std::cout << "Creating Glass window" << std::endl;
+	Application::Components::googleGlassWindow = new GoogleGlassWindow();
+	Application::Components::debugWindow = new DebugWindow();
 	
+	Application::Components::debugWindow->raise();
+
 	// Load detector cascades
 	Detection::loadCascades();
 	
@@ -225,21 +234,36 @@ void MainGazeTracker::process() {
 		Application::Components::pointTracker->process();
 		Application::Components::headTracker->process();
 		Application::Components::eyeExtractor->process();
+		//Application::Components::eyeExtractorSegmentationGroundTruth->process();
+		Application::Components::eyeSegmentation->process();
+		//Application::Components::eyeCenterDetector->process();
 		Application::Components::gazeTracker->process();
-		
+		Application::Components::gazeTrackerHistogramFeatures->process();
+
+		Application::Components::googleGlassWindow->process();
+
+
 		// Draw components' debug information on debug image
 		Application::Components::calibrator->draw();
 		Application::Components::testWindow->draw();
 		Application::Components::pointTracker->draw();
 		Application::Components::headTracker->draw();
 		Application::Components::eyeExtractor->draw();
+		//Application::Components::eyeExtractorSegmentationGroundTruth->draw();
+		Application::Components::eyeSegmentation->draw();
+		//Application::Components::eyeCenterDetector->draw();
 		Application::Components::gazeTracker->draw();
+		Application::Components::gazeTrackerHistogramFeatures->draw();
+
+		Application::Components::googleGlassWindow->draw();
+
 		
 		// Display debug image in the window
 		Application::Components::debugWindow->display();
 	}
 
-	if (Application::Components::gazeTracker->isActive()) {
+	if ( (Application::Components::gazeTracker != NULL) && (Application::Components::gazeTracker->isActive()) ||
+		(Application::Components::gazeTrackerHistogramFeatures != NULL) && (Application::Components::gazeTrackerHistogramFeatures->isActive()) ) {
 		// Write the output to all the channels
 		xForEach(iter, _stores) {
 			(*iter)->store();
@@ -251,8 +275,10 @@ void MainGazeTracker::process() {
 				if (!Application::Components::eyeExtractor->isBlinking()) {
 					Application::resultsOutputFile << Application::Components::testWindow->getPointFrameNo() + 1 << "\t"
 						<< Application::Components::testWindow->getActivePoint().x << "\t" << Application::Components::testWindow->getActivePoint().y << "\t"
-						<< Application::Data::gazePointGP.x 	<< "\t" << Application::Data::gazePointGP.y 	<< "\t"
-						<< Application::Data::gazePointGPLeft.x << "\t" << Application::Data::gazePointGPLeft.y
+						//<< Application::Data::gazePointGP.x 	<< "\t" << Application::Data::gazePointGP.y 	<< "\t"
+						//<< Application::Data::gazePointGPLeft.x << "\t" << Application::Data::gazePointGPLeft.y
+						<< Application::Data::gazePointHistFeaturesGP.x 	<< "\t" << Application::Data::gazePointHistFeaturesGP.y 	<< "\t"
+						<< Application::Data::gazePointHistFeaturesGPLeft.x << "\t" << Application::Data::gazePointHistFeaturesGPLeft.y
 						<< std::endl;
 				} else {
 					Application::resultsOutputFile << Application::Components::testWindow->getPointFrameNo() + 1 << "\t"

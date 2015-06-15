@@ -11,6 +11,7 @@ public:
 	
 	// Display the debug info
 	void display();
+	void raise();
 	
 private:
 	ImageWindow _window;

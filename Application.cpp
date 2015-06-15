@@ -21,13 +21,18 @@ namespace Application {
 		
 		PointTracker *pointTracker;
 		EyeExtractor *eyeExtractor;
+		EyeExtractorSegmentationGroundTruth *eyeExtractorSegmentationGroundTruth;
+		ExtractEyeFeaturesSegmentation *eyeSegmentation;
+		EyeCenterDetector *eyeCenterDetector;
 		GazeTracker *gazeTracker;
+		GazeTrackerHistogramFeatures *gazeTrackerHistogramFeatures;
 		HeadTracker *headTracker;
 		HeadCompensation *headCompensation;
 		Calibrator *calibrator;
 		
 		DebugWindow *debugWindow;
 		TestWindow *testWindow;
+		GoogleGlassWindow *googleGlassWindow;
 	}
 	
 	namespace Data {
@@ -35,6 +40,10 @@ namespace Application {
 		
 		Point gazePointGP;
 		Point gazePointGPLeft;
+
+		// Outputs for Histogram Features Gaussian Process estimator
+		Point gazePointHistFeaturesGP;
+		Point gazePointHistFeaturesGPLeft;
 		
 		Point gazePointNN;
 		Point gazePointNNLeft;

@@ -7,35 +7,8 @@
 #include "Application.h"
 
 
-template <class T, class S> std::vector<S> getSubVector(std::vector<T> const &input, S T::*ptr) {
-	std::vector<S> output(input.size());
-
-	for (int i = 0; i < input.size(); i++) {
-		output[i] = input[i].*ptr;
-	}
-
-	return output;
-}
-
 static void ignore(const cv::Mat *) {
 }
-
-/*
-int Targets::getCurrentTarget(Point point) {
-	std::vector<double> distances(targets.size());
-	//debugTee(targets);
-	transform(targets.begin(), targets.end(), distances.begin(), sigc::mem_fun(point, &Point::distance));
-	//debugTee(distances);
-	return min_element(distances.begin(), distances.end()) - distances.begin();
-	//for (int i = 0; i < targets.size(); i++) {
-	//	if (point.distance(targets[i]) < 30) {
-	// 		return i;
-	// 	}
-	//}
-	//return -1;
-}
-
-*/
 
 
 GazeTracker::GazeTracker()
@@ -105,7 +78,7 @@ void GazeTracker::removeCalibrationError(Point &estimate) {
 }
 
 void GazeTracker::boundToScreenArea(Point &estimate) {
-	cv::Rect *rect = Utils::getMainMonitorGeometry();
+	cv::Rect *rect = Utils::getDebugMonitorGeometry();
 
 	// If x or y coordinates are outside screen boundaries, correct them
 	if (estimate.x < rect->x) {
@@ -133,17 +106,12 @@ void GazeTracker::draw() {
 
 	// If not blinking, draw the estimations to debug window
 	if (isActive() && !Application::Components::eyeExtractor->isBlinking()) {
-		Point estimation(0, 0);
+		cv::Point estimation((Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x) / 2, (Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y) / 2);
 		
-		//Utils::mapToVideoCoordinates(Application::Data::gazePointGP, Application::Components::videoInput->getResolution(), estimation);
+		// Average estimation
 		cv::circle(image, 
-			Utils::mapFromMainScreenToDebugCoordinates(cv::Point(Application::Data::gazePointGP.x, Application::Data::gazePointGP.y)), 
-			8, cv::Scalar(0, 255, 0), -1, 8, 0);
-
-		//Utils::mapToVideoCoordinates(Application::Data::gazePointGPLeft, Application::Components::videoInput->getResolution(), estimation);
-		cv::circle(image, 
-			Utils::mapFromMainScreenToDebugCoordinates(cv::Point(Application::Data::gazePointGPLeft.x, Application::Data::gazePointGPLeft.y)), 
-			8, cv::Scalar(255, 0, 0), -1, 8, 0);
+			Utils::mapFromMainScreenToDebugFrameCoordinates(estimation), 
+			8, cv::Scalar(0, 255, 0), -1, 8, 0);		
 	}
 }
 
@@ -253,7 +221,7 @@ void GazeTracker::calculateTrainingErrors() {
 	}
 
 	// Add the corners of the monitor as 4 extra data points. This helps the correction for points that are near the edge of monitor
-	cv::Rect *rect = Utils::getMainMonitorGeometry();
+	cv::Rect *rect = Utils::getSecondaryMonitorGeometry();
 	
 	_xv[Application::Data::calibrationTargets.size()][0] = rect->x;
 	_xv[Application::Data::calibrationTargets.size()][1] = rect->y;
@@ -295,7 +263,7 @@ void GazeTracker::calculateTrainingErrors() {
 }
 
 void GazeTracker::printTrainingErrors() {
-	//cv::Rect *rect = Utils::getMainMonitorGeometry();
+	//cv::Rect *rect = Utils::getSecondaryMonitorGeometry();
 
 	//std::cout << "PRINTING TRAINING ESTIMATIONS: " << std::endl;
 	//for (int i = 0; i < 15; i++) {

@@ -1,12 +1,16 @@
+#pragma once
+#include <QWidget>
+#include <QImage>
+#include <QPainter>
+#include <opencv2/opencv.hpp>
+
 #include "GazeTracker.h"
-#include "WindowPointer.h"
+#include "ImageWindow.h"
 
-class GameArea: public Gtk::DrawingArea {
-	friend class GameWindow;
-
+class DisplayArea {
 public:
-	GameArea(TrackerOutput *output);
-	virtual ~GameArea();
+	DisplayArea(TrackerOutput *output);
+	virtual ~DisplayArea();
 	void showContents();
 	void calculateNewFrogPosition();
 	void clearLastUpdatedRegion();
@@ -14,7 +18,6 @@ public:
 private:
 	TrackerOutput *_output;
 	cv::Mat _current;
-	WindowPointer *_calibrationPointer;
 	cv::Mat *_repositioningImage;
 	cv::Mat _origImage;
 	cv::Mat _background;
@@ -38,24 +41,18 @@ private:
 	bool _isWindowInitialized;
 
 	bool onIdle();
-
-	// Gtk::DrawingArea;
-	virtual bool on_expose_event(GdkEventExpose *event);
-	virtual bool on_button_press_event(GdkEventButton *event);
-	virtual bool on_button_release_event(GdkEventButton *event);
 };
 
-class GameWindow: public Gtk::Window {
+class DisplayWindow: public Gtk::Window {
 public:
-	GameWindow(TrackerOutput *output);
-	virtual ~GameWindow();
+	DisplayWindow(TrackerOutput *output);
+	virtual ~DisplayWindow();
 	cv::Mat *getCurrent();
-	void setCalibrationPointer(WindowPointer *pointer);
 	void setRepositioningImage(cv::Mat *image);
 	void changeWindowColor(double illuminationLevel);
 
 private:
-	GameArea _picture;
+	DisplayArea _picture;
 	int _grayLevel;
 
 	//Member widgets:

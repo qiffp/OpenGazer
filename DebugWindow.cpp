@@ -6,7 +6,7 @@
 #include "Application.h"
 
 DebugWindow::DebugWindow() : 
-	_window(true)	// Create this window in the debug screen
+	_window(1, true)	// Create this window in the debug screen
 {
 	screenImage.create(cv::Size(_window.size().width(), _window.size().height()), CV_8UC3);
 	
@@ -31,4 +31,8 @@ void DebugWindow::display() {
 	_window.setWindowTitle("Opengazer (" + QString::number(Application::Components::videoInput->frameRate, 'g', 4) + " fps)");
 }
 
+void DebugWindow::raise() {
+	_window.show();
+	_window.raise();
+}
 

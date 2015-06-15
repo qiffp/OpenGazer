@@ -1,7 +1,9 @@
 #include "TestWindow.h"
 #include "Application.h"
 
-TestWindow::TestWindow() {
+TestWindow::TestWindow() : 
+	_window(1, false)	// Create this window in the debug screen
+ {
 	_frameNumber = -1;
 	
 	_screenImage.create(cv::Size(_window.size().width(), _window.size().height()), CV_8UC3);
@@ -139,7 +141,7 @@ void TestWindow::draw() {
 		Point activePoint = getActivePoint();
 		
 		cv::circle(Application::Components::videoInput->debugFrame, 
-				Utils::mapFromMainScreenToDebugCoordinates(cv::Point(activePoint.x, activePoint.y)), 
+				Utils::mapFromMainScreenToDebugFrameCoordinates(cv::Point(activePoint.x, activePoint.y)), 
 				8, cv::Scalar(0, 0, 255), -1, 8, 0);
 	}
 }

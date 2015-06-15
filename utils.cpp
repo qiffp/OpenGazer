@@ -23,11 +23,11 @@ namespace Utils {
 						desktop->availableGeometry(screenIndex).height());
 	}
 	
-	cv::Rect* getMainMonitorGeometry() {
+	cv::Rect* getSecondaryMonitorGeometry() {
 		QDesktopWidget* desktop = QApplication::desktop();
 		
 		// Return last monitor geometry
-		return getMonitorGeometryByIndex(desktop->screenCount());
+		return getMonitorGeometryByIndex(desktop->screenCount()-1);
 		
 		// For replaying experiment videos, return false geometry for 1920x1080 monitor
 		//return new cv::Rect(0, 0, 1920, 1080);
@@ -43,20 +43,20 @@ namespace Utils {
 	
 	void mapToFirstMonitorCoordinates(Point monitor2Point, Point &monitor1Point) {
 		cv::Rect *monitor1Geometry = Utils::getDebugMonitorGeometry();
-		cv::Rect *monitor2Geometry = Utils::getMainMonitorGeometry();
+		cv::Rect *monitor2Geometry = Utils::getSecondaryMonitorGeometry();
 		
 		monitor1Point.x = (monitor2Point.x / monitor2Geometry->width) * (monitor1Geometry->width - 40) + monitor1Geometry->x;
 		monitor1Point.y = (monitor2Point.y / monitor2Geometry->height) * monitor1Geometry->height + monitor1Geometry->y;
 	}
 	
-	cv::Point mapFromVideoToDebugCoordinates(cv::Point point) {
+	cv::Point mapFromCameraToDebugFrameCoordinates(cv::Point point) {
 		double factor  = Application::Components::videoInput->debugFrame.size().width / (double) Application::Components::videoInput->frame.size().width;
 		
 		return cv::Point(factor*point.x, factor*point.y);
 	}
 
-	cv::Point mapFromMainScreenToDebugCoordinates(cv::Point point) {
-		cv::Rect *geometry = Utils::getMainMonitorGeometry();
+	cv::Point mapFromMainScreenToDebugFrameCoordinates(cv::Point point) {
+		cv::Rect *geometry = Utils::getSecondaryMonitorGeometry();
 		double xFactor  = Application::Components::videoInput->debugFrame.size().width / (double) geometry->width;
 		double yFactor  = Application::Components::videoInput->debugFrame.size().height / (double) geometry->height;
 
@@ -66,7 +66,7 @@ namespace Utils {
 
 	void mapToVideoCoordinates(Point monitor2Point, double resolution, Point &videoPoint, bool reverseX) {
 		cv::Rect *monitor1Geometry = new cv::Rect(0, 0, 1280, 720);
-		cv::Rect *monitor2Geometry = Utils::getMainMonitorGeometry();
+		cv::Rect *monitor2Geometry = Utils::getSecondaryMonitorGeometry();
 		
 		if (resolution == 480) {
 			monitor1Geometry->width = 640;
@@ -88,7 +88,7 @@ namespace Utils {
 	// Neural network
 	void mapToNeuralNetworkCoordinates(Point point, Point &nnPoint) {
 		cv::Rect *monitor1Geometry = new cv::Rect(0, 0, 1, 1);
-		cv::Rect *monitor2Geometry = Utils::getMainMonitorGeometry();
+		cv::Rect *monitor2Geometry = Utils::getSecondaryMonitorGeometry();
 		
 		nnPoint.x = ((point.x - monitor2Geometry->x) / monitor2Geometry->width) * monitor1Geometry->width + monitor1Geometry->x;
 		nnPoint.y = ((point.y - monitor2Geometry->y) / monitor2Geometry->height) * monitor1Geometry->height + monitor1Geometry->y;
@@ -98,7 +98,7 @@ namespace Utils {
 
 
 	void mapFromNeuralNetworkToScreenCoordinates(Point nnPoint, Point &point) {
-		cv::Rect *monitor1Geometry = Utils::getMainMonitorGeometry();
+		cv::Rect *monitor1Geometry = Utils::getSecondaryMonitorGeometry();
 		cv::Rect *monitor2Geometry = new cv::Rect(0, 0, 1, 1);
 		
 		point.x = ((nnPoint.x - monitor2Geometry->x) / monitor2Geometry->width) * monitor1Geometry->width + monitor1Geometry->x;
@@ -139,7 +139,7 @@ namespace Utils {
 	
 	
 	std::vector<Point> readAndScalePoints(std::ifstream &in) {
-		cv::Rect *rect = getMainMonitorGeometry();
+		cv::Rect *rect = getDebugMonitorGeometry();
 		
 		return scaled(loadPoints(in), rect->width, rect->height);
 	}

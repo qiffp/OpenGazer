@@ -5,7 +5,7 @@
 class ImageWindow : public QMainWindow
 {
 public:
-	ImageWindow(bool debugWindow = false);
+	ImageWindow(int screenIndex = 1, bool debugSize = false);
 	~ImageWindow();
 	void showImage(cv::Mat image);
 

@@ -5,27 +5,6 @@
 #include "utils.h"
 #include "GaussianProcess.cpp"
 
-/*
-struct TrackerOutput {
-	Point gazePoint;
-	Point gazePointLeft;
-
-	// Neural network
-	Point nnGazePoint;
-	Point nnGazePointLeft;
-	Point target;
-	Point actualTarget;
-	int targetId;
-	int frameId;
-	//bool outputError;
-
-	TrackerOutput(Point gazePoint, Point target, int targetId);
-	void setActualTarget(Point actual);
-	//void setErrorOutput(bool show);
-	void setFrameId(int id);
-};
-*/
-
 class GazeTracker {
 	typedef MeanAdjustedGaussianProcess<Utils::SharedImage> ImProcess;
 

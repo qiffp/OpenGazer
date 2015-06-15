@@ -1,41 +1,30 @@
 #include <opencv/highgui.h>
 #include <sys/time.h>
 
-#include "GameWindow.h"
+#include "DisplayWindow.h"
 #include "Application.h"
 #include "utils.h"
 
 namespace {
 	cv::Scalar backgroundColor2(255, 255, 255);
-
-	bool buttonEvents() {
-		static int mode = 1;
-
-		//backgroundColor2 = mode == 1 ? CV_RGB(0, 0, 0) : CV_RGB(255, 255, 255);
-		//mode = 1 - mode;
-
-		return true;
-	}
 }
 
-GameArea::GameArea(TrackerOutput *output):
+DisplayArea::DisplayArea(TrackerOutput *output):
 	_output(output), 
 	_backgroundColor(153, 75, 75)
 {
-	Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-	Gdk::Rectangle rect;
-	screen->get_monitor_geometry(Gdk::Screen::get_default()->get_n_monitors() - 1, rect);
-
-	set_size_request(rect.get_width(), rect.get_height());
+	cv::Rect *rect = Utils::getSecondaryMonitorGeometry();
+	
+	set_size_request(rect->width, rect->height);
 
 	//this->move(0, 0);
-	Glib::signal_idle().connect(sigc::mem_fun(*this, &GameArea::onIdle));
+	Glib::signal_idle().connect(sigc::mem_fun(*this, &DisplayArea::onIdle));
 
 	add_events(Gdk::BUTTON_PRESS_MASK);
 	add_events(Gdk::BUTTON_RELEASE_MASK);
 
 	Glib::RefPtr<Gdk::Window> window = get_window();
-	//this->signal_key_press_event().connect(sigc::mem_fun(*this, &GameArea::onIdle));
+	//this->signal_key_press_event().connect(sigc::mem_fun(*this, &DisplayArea::onIdle));
 
 	_origImage = cv::imread("./background_full.png", CV_LOAD_IMAGE_COLOR);
 	cvtColor(_origImage, _origImage, CV_RGB2BGR);
@@ -43,7 +32,7 @@ GameArea::GameArea(TrackerOutput *output):
 	_frog.create(cv::Size(180, 180), CV_8UC3);
 	_target.create(cv::Size(50, 50), CV_8UC3);
 
-	_background.create(cv::Size(rect.get_width(), rect.get_height()), CV_8UC3);
+	_background.create(cv::Size(rect->width, rect->height), CV_8UC3);
 	_current.create(cv::Size(_background.size().width, _background.size().height), CV_8UC3);
 	//_black.create(cv::Size(_background.size().width, _background.size().height), CV_8UC3);
 	_clearingImage.create(cv::Size(2000, 1500), CV_8UC3);
@@ -59,8 +48,8 @@ GameArea::GameArea(TrackerOutput *output):
 	//_clearingImage.setTo(backgroundColor2);
 	_clearingImage.setTo(cv::Scalar(255, 255, 255));
 
-	_gameAreaX = (rect.get_width() - _origImage.size().width) / 2;
-	_gameAreaY = (rect.get_height() - _origImage.size().height) / 2;
+	_gameAreaX = (rect->width - _origImage.size().width) / 2;
+	_gameAreaY = (rect->height - _origImage.size().height) / 2;
 	_gameAreaWidth = _origImage.size().width;
 	_gameAreaHeight = _origImage.size().height;
 
@@ -82,19 +71,17 @@ GameArea::GameArea(TrackerOutput *output):
 
 	_startTime = _futureTime;
 
-	_calibrationPointer = NULL;
-
 	_lastUpdatedRegion.x = 0;
 	_lastUpdatedRegion.y = 0;
-	_lastUpdatedRegion.width = rect.get_width();// - 54;
-	_lastUpdatedRegion.height = rect.get_height();// - 24;
+	_lastUpdatedRegion.width = rect->width;// - 54;
+	_lastUpdatedRegion.height = rect->height;// - 24;
 
 	_isWindowInitialized = false;
 }
 
-GameArea::~GameArea() {}
+DisplayArea::~DisplayArea() {}
 
-void GameArea::showContents() {
+void DisplayArea::showContents() {
 	static double estimationXRight = 0;
 	static double estimationYRight = 0;
 	static double estimationXLeft = 0;
@@ -280,77 +267,13 @@ void GameArea::showContents() {
 			window->draw_pixbuf(gc, pixbuf, 0, 0, 0, 0, 1920, 1080, Gdk::RGB_DITHER_NONE , 0, 0);
 
 			_isWindowInitialized = true;
-		} else if (_calibrationPointer != NULL){	// Calibration
-			const int width = _background.size().width;
-			const int height = _background.size().height;
-			cv::Rect currentlyUpdatedRegion = cv::Rect(0, 0, 0, 0);
-			Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(window);
-			Point calibrationPoint = _calibrationPointer->getPosition();
-
-			//if (Application::status == Application::STATUS_TESTING) {
-			//	std::cout << "EXPECTED OUTPUT: ("<< calibrationPoint.x << ", " << calibrationPoint.y << ")" << std::endl << std::endl;
-			//}
-
-			// If the coordinates are beyond bounds, calibration is finished
-			if (calibrationPoint.x > 3000 || calibrationPoint.y > 3000) {
-				_calibrationPointer = NULL;
-				return;
-			}
-
-			if (calibrationPoint.x > 0 && calibrationPoint.y > 0) {
-				cv::Rect currentBounds = cv::Rect(calibrationPoint.x - 25, calibrationPoint.y - 25, 50, 50);
-				cv::Rect targetBounds = cv::Rect(0, 0, 50, 50);
-
-				if (currentBounds.x < 0) {
-					currentBounds.width += currentBounds.x;		// Remove the amount from the width
-					targetBounds.x -= currentBounds.x;
-					targetBounds.width += currentBounds.x;
-					currentBounds.x = 0;
-				}
-
-				if (currentBounds.y < 0) {
-					currentBounds.height += currentBounds.y;		// Remove the amount from the height
-					targetBounds.y -= currentBounds.y;
-					targetBounds.height += currentBounds.y;
-					currentBounds.y = 0;
-				}
-
-				if (currentBounds.width + currentBounds.x > _background.size().width) {
-					currentBounds.width = _background.size().width - currentBounds.x;
-				}
-
-				if (currentBounds.height + currentBounds.y > _background.size().height) {
-					currentBounds.height = _background.size().height - currentBounds.y;
-				}
-				
-				// Clear only previously updated region
-				clearLastUpdatedRegion();
-
-				// Draw only the region which is to be updated
-				Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create_from_data(
-					(guint8 *)_target.data,
-					Gdk::COLORSPACE_RGB,
-					false,
-					8,
-					_target.size().width,
-					_target.size().height,
-					(int) _target.step[0]
-				);
-
-				window->draw_pixbuf(gc, pixbuf, targetBounds.x,targetBounds.y, currentBounds.x, currentBounds.y, targetBounds.width, targetBounds.height, Gdk::RGB_DITHER_NONE, 0, 0);
-
-				_lastUpdatedRegion.x = currentBounds.x;
-				_lastUpdatedRegion.y = currentBounds.y;
-				_lastUpdatedRegion.width = targetBounds.width;
-				_lastUpdatedRegion.height = targetBounds.height;
-			}
 		} else {
 			clearLastUpdatedRegion();
 		}
 	}
 }
 
-void GameArea::calculateNewFrogPosition() {
+void DisplayArea::calculateNewFrogPosition() {
 	//static int frogXS[] = {350, 640, 640, 350};
 	//static int frogYS[] = {680, 95, 680, 680};
 	//static int counter = 0;
@@ -375,7 +298,7 @@ void GameArea::calculateNewFrogPosition() {
 	std::cout << "Background prepared" << std::endl;
 }
 
-void GameArea::clearLastUpdatedRegion() {
+void DisplayArea::clearLastUpdatedRegion() {
 	if (_lastUpdatedRegion.width > 0) {
 		Glib::RefPtr<Gdk::Window> window = get_window();
 		Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(window);
@@ -401,37 +324,21 @@ void GameArea::clearLastUpdatedRegion() {
 	}
 }
 
-bool GameArea::onIdle() {
+bool DisplayArea::onIdle() {
 	showContents();
 	//queue_draw();
 	return true;
 }
 
-
-bool GameArea::on_expose_event(GdkEventExpose *event) {
-	//showContents();
-	return true;
-}
-
-bool GameArea::on_button_press_event(GdkEventButton *event) {
-	return buttonEvents();
-}
-
-bool GameArea::on_button_release_event(GdkEventButton *event) {
-	return true;
-}
-
-GameWindow::GameWindow(TrackerOutput *output) :
+DisplayWindow::DisplayWindow(TrackerOutput *output) :
 	_picture(output)
 {
 	try {
 		set_title("Game Window");
 
 		// Center window
-		Glib::RefPtr<Gdk::Screen> screen = Gdk::Display::get_default()->get_default_screen();
-		Gdk::Rectangle rect;
-		screen->get_monitor_geometry(Gdk::Screen::get_default()->get_n_monitors() - 1, rect);
-
+		cv::Rect *rect = Utils::getSecondaryMonitorGeometry();
+		
 		//this->set_keep_above(true);
 		// Set tracker output
 		add(_vbox);
@@ -449,7 +356,7 @@ GameWindow::GameWindow(TrackerOutput *output) :
 
 		_picture.showContents();
 
-		move(rect.get_x(), rect.get_y());
+		move(rect->x, rect->y);
 		//gtk_window_present((GtkWindow *)this);
 		//gtk_window_fullscreen((GtkWindow *)this);
 	}
@@ -458,23 +365,23 @@ GameWindow::GameWindow(TrackerOutput *output) :
 	}
 }
 
-GameWindow::~GameWindow() {
+DisplayWindow::~DisplayWindow() {
 }
 
 
-cv::Mat *GameWindow::getCurrent(){
+cv::Mat *DisplayWindow::getCurrent(){
 	return &(_picture._current);
 }
-
-void GameWindow::setCalibrationPointer(WindowPointer *pointer) {
+/*
+void DisplayWindow::setCalibrationPointer(WindowPointer *pointer) {
 	_picture._calibrationPointer = pointer;
-}
+}*/
 
-void GameWindow::setRepositioningImage(cv::Mat *image) {
+void DisplayWindow::setRepositioningImage(cv::Mat *image) {
 	_picture._repositioningImage = image;
 }
 
-void GameWindow::changeWindowColor(double illuminationLevel) {
+void DisplayWindow::changeWindowColor(double illuminationLevel) {
 	_grayLevel = (int)(255 * illuminationLevel);
 	_grayLevel = _grayLevel % 256;
 	backgroundColor2 = CV_RGB(_grayLevel, _grayLevel, _grayLevel);

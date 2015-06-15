@@ -1,14 +1,14 @@
 #include <opencv/highgui.h>
 
-#include "EyeExtractor.h"
+#include "EyeExtractorSegmentationGroundTruth.h"
 #include "Application.h"
 #include "utils.h"
 
-const int EyeExtractor::eyeDX = 32;
-const int EyeExtractor::eyeDY = 16;
-const cv::Size EyeExtractor::eyeSize = cv::Size(eyeDX * 2, eyeDY * 2);
+const int EyeExtractorSegmentationGroundTruth::eyeDX = 32;
+const int EyeExtractorSegmentationGroundTruth::eyeDY = 16;
+const cv::Size EyeExtractorSegmentationGroundTruth::eyeSize = cv::Size(eyeDX * 2, eyeDY * 2);
 
-EyeExtractor::EyeExtractor():
+EyeExtractorSegmentationGroundTruth::EyeExtractorSegmentationGroundTruth():
 	eyeGrey(new cv::Mat(eyeSize, CV_8UC1)),
 	eyeFloat(new cv::Mat(eyeSize, CV_32FC1)),
 	
@@ -23,40 +23,47 @@ EyeExtractor::EyeExtractor():
 {
 }
 
-EyeExtractor::~EyeExtractor() {}
+EyeExtractorSegmentationGroundTruth::~EyeExtractorSegmentationGroundTruth() {}
 
-void EyeExtractor::process() {
+void EyeExtractorSegmentationGroundTruth::process() {
 	if (Application::Components::pointTracker->isTrackingSuccessful()) {
 		// Extract eye images using point tracker results
-		extractEye(Application::Components::videoInput->frame);
-		extractEyeLeft(Application::Components::videoInput->frame);
+
+		char file_detect_eye[50];
+
+		sprintf(file_detect_eye, "../video1/PHOTOSHOP_frameVideo/img_%d.png", Application::Components::videoInput->frameCount-1);
+
+	    cv::Mat image = cv::imread(file_detect_eye);
+
+		extractEye(image);
+		extractEyeLeft(image);
 
 		// Blink detection
-		_blinkDetector.update(eyeFloat);
-		_blinkDetectorLeft.update(eyeFloatLeft);
+		//_blinkDetector.update(eyeFloat);
+		//_blinkDetectorLeft.update(eyeFloatLeft);
 
-		if (_blinkDetector.getState() >= 2 && _blinkDetectorLeft.getState() >= 2) {
-			_isBlinking = true;
-		} else {
-			_isBlinking = false;
-		}
-	
+		//if (_blinkDetector.getState() >= 2 && _blinkDetectorLeft.getState() >= 2) {
+		//	_isBlinking = true;
+		//} else {
+		//	_isBlinking = false;
+		//}
+/*
 		// If calibration is active, collect eye image samples, calculate averages and train the system
 		if(Application::Components::calibrator->isActive()) {
 			if (Application::Components::calibrator->shouldStartNextPoint()) {
 				// Switch to next calibration point
-				pointStart();
+				//pointStart();
 			} else if (hasValidSample()) {
 				// Add the valid training samples
-				averageEye->addSample(eyeFloat.get());
-				averageEyeLeft->addSample(eyeFloatLeft.get());
+				//averageEye->addSample(eyeFloat.get());
+				//averageEyeLeft->addSample(eyeFloatLeft.get());
 
 				// TODO MOVE ADD SAMPLES TO NN CODE
 				//Application::Components::gazeTracker->addSampleToNN(Application::Components::calibrator->getActivePoint(), eyeFloat.get(), eyeGrey.get());
 				//Application::Components::gazeTracker->addSampleToNNLeft(Application::Components::calibrator->getActivePoint(), eyeFloatLeft.get(), eyeGreyLeft.get());
 
-				if (Application::Components::calibrator->getPointFrameNo() == Application::dwelltimeParameter - 1) {
-					pointEnd();
+				//if (Application::Components::calibrator->getPointFrameNo() == Application::dwelltimeParameter - 1) {
+				//	pointEnd();
 				
 					// TODO : NOT NECESSARY FOR THIS COMPONENT
 					//if (Application::Components::calibrator->isLastPoint())
@@ -64,19 +71,23 @@ void EyeExtractor::process() {
 				}
 			}
 		}
+	*/
 	}
 }
 
-bool EyeExtractor::isBlinking() {
+bool EyeExtractorSegmentationGroundTruth::isBlinking() {
 	return _isBlinking;
 }
 
-void EyeExtractor::extractEye(const cv::Mat originalImage) {
+void EyeExtractorSegmentationGroundTruth::extractEye(cv::Mat originalImage) {
+	//cv::imwrite("aaa_segmentation_frame.png", originalImage);
+
 	double x0 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint1].x;
 	double y0 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint1].y;
 	double x1 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2].x;
 	double y1 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2].y;
 
+	//std::cout << "Points: " << x0 << ", " << y0 << " and " << x1 << ", " << y1 << std::endl;
 	// Move the tracked points a little towards center (using weighted sum)
 	// so that the extracted image contains more the important area (iris & sclera)
 	double alpha = 0.95;
@@ -124,16 +135,20 @@ void EyeExtractor::extractEye(const cv::Mat originalImage) {
 	// Calculate the transformation matrix between two sets of points, and use it to extract eye image
 	cv::Mat transform = cv::getAffineTransform(originalImagePoints, extractedImagePoints);
 	warpAffine(originalImage, *eyeImage.get(), transform, eyeSize);
-	cv::cvtColor(*eyeImage.get(), *eyeGrey.get(), CV_RGB2GRAY);
+	//cv::cvtColor(*eyeImage.get(), *eyeGrey.get(), CV_RGB2GRAY);
 	
 	// Apply blurring and normalization
 	//Utils::normalizeGrayScaleImage(eyeGrey.get(), 127, 50);	// TODO ONUR UNCOMMENT
-	eyeGrey->convertTo(*eyeFloat, CV_32FC1);
-	cv::GaussianBlur(*eyeFloat, *eyeFloat, cv::Size(3,3), 0);
-	cv::equalizeHist(*eyeGrey, *eyeGrey);
+	//eyeGrey->convertTo(*eyeFloat, CV_32FC1);
+	//cv::GaussianBlur(*eyeFloat, *eyeFloat, cv::Size(3,3), 0);
+	//cv::equalizeHist(*eyeGrey, *eyeGrey);
+
+	//cv::circle(originalImage, cv::Point(x0, y0), 3, CV_RGB(0,255,0), -1, 8, 0);
+	//cv::circle(originalImage, cv::Point(x1, y1), 3, CV_RGB(0,255,0), -1, 8, 0);
+	//cv::imwrite("aaa_segmentation_frame_pts.png", originalImage);
 }
 
-void EyeExtractor::extractEyeLeft(const cv::Mat originalImage) {
+void EyeExtractorSegmentationGroundTruth::extractEyeLeft(cv::Mat originalImage) {
 	double x0 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2].x;
 	double y0 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2].y;
 	double x1 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint1].x;
@@ -186,16 +201,16 @@ void EyeExtractor::extractEyeLeft(const cv::Mat originalImage) {
 	// Calculate the transformation matrix between two sets of points, and use it to extract eye image
 	cv::Mat transform = cv::getAffineTransform(originalImagePoints, extractedImagePoints);
 	warpAffine(originalImage, *eyeImageLeft.get(), transform, eyeSize);
-	cv::cvtColor(*eyeImageLeft.get(), *eyeGreyLeft.get(), CV_RGB2GRAY);
+	//cv::cvtColor(*eyeImageLeft.get(), *eyeGreyLeft.get(), CV_RGB2GRAY);
 	
 	// Apply blurring and normalization
 	//Utils::normalizeGrayScaleImage(eyeGreyLeft.get(), 127, 50);	// TODO ONUR UNCOMMENT
-	eyeGreyLeft->convertTo(*eyeFloatLeft, CV_32FC1);
-	cv::GaussianBlur(*eyeFloatLeft, *eyeFloatLeft, cv::Size(3,3), 0);
-	cv::equalizeHist(*eyeGreyLeft, *eyeGreyLeft);
+	//eyeGreyLeft->convertTo(*eyeFloatLeft, CV_32FC1);
+	//cv::GaussianBlur(*eyeFloatLeft, *eyeFloatLeft, cv::Size(3,3), 0);
+	//cv::equalizeHist(*eyeGreyLeft, *eyeGreyLeft);
 }
 
-void EyeExtractor::draw() {
+void EyeExtractorSegmentationGroundTruth::draw() {
 	if (!Application::Components::pointTracker->isTrackingSuccessful())
 		return;
 	
@@ -208,28 +223,25 @@ void EyeExtractor::draw() {
 	int stepX = 0;
 	int stepY = 2*eyeDY;
 
-	cv::cvtColor(*eyeGrey.get(), image(cv::Rect(baseX, baseY, eyeDX, eyeDY)), CV_GRAY2RGB);
-	//cv::cvtColor(*eyeGrey.get(), image(cv::Rect(baseX + stepX * 1, baseY + stepY * 1, eyeDX, eyeDY)), CV_GRAY2RGB);
-	
-	cv::cvtColor(*eyeGreyLeft.get(), image(cv::Rect(baseX + 100, baseY, eyeDX, eyeDY)), CV_GRAY2RGB);
-	//cv::cvtColor(*eyeGreyLeft.get(), image(cv::Rect(baseX + 100, baseY + stepY * 1, eyeDX, eyeDY)), CV_GRAY2RGB);
+	eyeImage->copyTo(image(cv::Rect(baseX + stepX * 1, baseY + stepY * 1, eyeDX, eyeDY)));
+	eyeImageLeft->copyTo(image(cv::Rect(baseX + 100, baseY + stepY * 1, eyeDX, eyeDY)));
 }
 
 // Prepares the eye extractor for calibration
-void EyeExtractor::start() {
+void EyeExtractorSegmentationGroundTruth::start() {
 	pointStart();
 }
 
 // When a new calibration point is starting, prepare the average eye accumulators
-void EyeExtractor::pointStart() {
-	averageEye.reset(new FeatureDetector(EyeExtractor::eyeSize));
-	averageEyeLeft.reset(new FeatureDetector(EyeExtractor::eyeSize));
+void EyeExtractorSegmentationGroundTruth::pointStart() {
+	averageEye.reset(new FeatureDetector(EyeExtractorSegmentationGroundTruth::eyeSize));
+	averageEyeLeft.reset(new FeatureDetector(EyeExtractorSegmentationGroundTruth::eyeSize));
 }
 
-void EyeExtractor::pointEnd() {}
-void EyeExtractor::abortCalibration() {}
-void EyeExtractor::calibrationEnded() {}
+void EyeExtractorSegmentationGroundTruth::pointEnd() {}
+void EyeExtractorSegmentationGroundTruth::abortCalibration() {}
+void EyeExtractorSegmentationGroundTruth::calibrationEnded() {}
 
-bool EyeExtractor::hasValidSample() {
+bool EyeExtractorSegmentationGroundTruth::hasValidSample() {
 	return Application::Components::calibrator->getPointFrameNo() >= 11 && !isBlinking();
 }

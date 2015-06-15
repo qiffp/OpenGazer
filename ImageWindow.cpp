@@ -5,14 +5,22 @@
 #include "Application.h"
 #include "utils.h"
 
-ImageWindow::ImageWindow(bool debugWindow) {
-	cv::Rect* geometry = Utils::getMainMonitorGeometry();
+ImageWindow::ImageWindow(int screenIndex, bool debugSize) {
+	cv::Rect* geometry = Utils::getSecondaryMonitorGeometry();
+
+	if(screenIndex == 1) {
+		geometry = Utils::getDebugMonitorGeometry();
+		std::cout << "Debug screen!" << std::endl;
+	}
+	
+	std::cout << "Screen geometry: size=" << geometry->width << "x" << geometry->height << " position=" << geometry->x << "," << geometry->y<< std::endl;
+	std::cout << "Screen index=" << screenIndex << std::endl;
+	
 	cv::Size windowSize(geometry->width, geometry->height);
 	
 	// If it's a debug window, get the debug monitor geometry
 	// and read the image resolution from video input
-	if(debugWindow) {
-		geometry = Utils::getDebugMonitorGeometry();
+	if(debugSize) {
 		windowSize = Application::Components::videoInput->debugFrame.size();
 	}
 	
@@ -22,8 +30,7 @@ ImageWindow::ImageWindow(bool debugWindow) {
 	
 	this->setFixedSize(windowSize.width, windowSize.height);
 	this->move(x, y);
-	//this->setWindowTitle("Debug Info");
-
+	
 	imageWidget = new ImageWidget(0, windowSize);
 	this->setCentralWidget(imageWidget);
 }

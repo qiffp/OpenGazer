@@ -195,7 +195,7 @@ void PointTracker::draw() {
 	try {
 		for (int i = 0; i < (int)currentPoints.size(); i++) {
 			//std::cout << "Drawing point " << i+1 << "(" << currentPoints[i].x << ", " << currentPoints[i].y << ")" << std::endl;
-			cv::circle(image, Utils::mapFromVideoToDebugCoordinates(currentPoints[i]), 3, cv::Scalar(255,0,0), -1, 8, 0);
+			cv::circle(image, Utils::mapFromCameraToDebugFrameCoordinates(currentPoints[i]), 3, cv::Scalar(255,0,0), -1, 8, 0);
 			//status[i] ? (i == eyePoint1 || i == eyePoint2 ? cv::Scalar(255,0,0) : cv::Scalar(0,255,0)) : cv::Scalar(0,0,255)
 		}
 	}

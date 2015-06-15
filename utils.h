@@ -145,12 +145,12 @@ namespace Utils {
 	void releaseImage(cv::Mat *image);
 
 	cv::Rect* getMonitorGeometryByIndex(int screenIndex);
-	cv::Rect* getMainMonitorGeometry();
+	cv::Rect* getSecondaryMonitorGeometry();
 	cv::Rect* getDebugMonitorGeometry();
 	
 	void mapToFirstMonitorCoordinates(Point monitor2Point, Point &monitor1Point);
-	cv::Point mapFromVideoToDebugCoordinates(cv::Point point);
-	cv::Point mapFromMainScreenToDebugCoordinates(cv::Point point);
+	cv::Point mapFromCameraToDebugFrameCoordinates(cv::Point point);
+	cv::Point mapFromMainScreenToDebugFrameCoordinates(cv::Point point);
 	
 	void mapToVideoCoordinates(Point monitor2Point, double resolution, Point &videoPoint, bool reverseX=true);
 	void mapToNeuralNetworkCoordinates(Point point, Point &nnPoint);

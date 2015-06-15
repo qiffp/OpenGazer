@@ -11,9 +11,9 @@ pushd ~ 2>&1 > /dev/null
 echo "Installing dependencies for OpenGazer...this may take a while..."
 
 if [[ "$(uname)" == "Linux" ]] ; then
-  echo "Installing libraries for OpenCV, GTK, Cairo, Boost, GSL, FANN and CMake"
+  echo "Installing libraries for OpenCV, Boost, GSL, FANN and CMake"
   sudo apt-get update
-  sudo apt-get install -y libopencv-dev libgtkmm-2.4-dev libcairomm-1.0-dev libboost-dev libboost-system-dev libboost-filesystem-dev libgsl0-dev libfann2 libfann-dev libv4l-dev cmake wget
+  sudo apt-get install -y libopencv-dev libboost-dev libboost-system-dev libboost-filesystem-dev libgsl0-dev libfann2 libfann-dev libv4l-dev cmake wget
 
   echo "Installing GSL from source"
   wget ftp://ftp.gnu.org/gnu/gsl/gsl-1.15.tar.gz
@@ -44,7 +44,7 @@ elif [[ "$(uname)" == "Darwin" ]] ; then
   fi
 
   brew tap homebrew/science
-  brew install gtkmm cairomm gsl cmake ffmpeg opencv fann boost
+  brew install gsl cmake ffmpeg opencv fann boost
 
 fi
 

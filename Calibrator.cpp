@@ -155,7 +155,7 @@ void Calibrator::draw() {
 		Point activePoint = getActivePoint();
 		
 		cv::circle(Application::Components::videoInput->debugFrame, 
-				Utils::mapFromMainScreenToDebugCoordinates(cv::Point(activePoint.x, activePoint.y)), 
+				Utils::mapFromMainScreenToDebugFrameCoordinates(cv::Point(activePoint.x, activePoint.y)), 
 				8, cv::Scalar(0, 0, 255), -1, 8, 0);
 	}
 }

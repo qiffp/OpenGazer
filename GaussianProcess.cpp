@@ -1,3 +1,5 @@
+#pragma once
+
 #include <numeric>
 
 template <class T> class GaussianProcess {
