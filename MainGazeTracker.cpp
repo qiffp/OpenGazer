@@ -197,6 +197,7 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	Application::Components::testWindow = new TestWindow();
 	std::cout << "Creating Glass window" << std::endl;
 	Application::Components::googleGlassWindow = new GoogleGlassWindow();
+	Application::Components::frogGame = new FrogGame();
 	Application::Components::debugWindow = new DebugWindow();
 	
 	Application::Components::debugWindow->raise();
@@ -240,7 +241,8 @@ void MainGazeTracker::process() {
 		Application::Components::gazeTracker->process();
 		Application::Components::gazeTrackerHistogramFeatures->process();
 
-		Application::Components::googleGlassWindow->process();
+		//Application::Components::googleGlassWindow->process();
+		Application::Components::frogGame->process();
 
 
 		// Draw components' debug information on debug image
@@ -255,7 +257,8 @@ void MainGazeTracker::process() {
 		Application::Components::gazeTracker->draw();
 		Application::Components::gazeTrackerHistogramFeatures->draw();
 
-		Application::Components::googleGlassWindow->draw();
+		//Application::Components::googleGlassWindow->draw();
+		Application::Components::frogGame->draw();
 
 		
 		// Display debug image in the window

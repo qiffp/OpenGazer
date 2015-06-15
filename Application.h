@@ -16,6 +16,7 @@
 #include "MainGazeTracker.h"
 #include "TestWindow.h"
 #include "GoogleGlassWindow.h"
+#include "FrogGame.h"
 
 namespace Application {
 	// Tracker status
@@ -60,6 +61,7 @@ namespace Application {
 		extern DebugWindow *debugWindow;
 		extern TestWindow *testWindow;
 		extern GoogleGlassWindow *googleGlassWindow;
+		extern FrogGame *frogGame;
 	}
 
 	namespace Data {

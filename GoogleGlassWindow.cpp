@@ -91,38 +91,34 @@ void GoogleGlassWindow::process() {
 		return;
 	}
 
+	// Get the current estimation and calculate the image index it corresponds to
+	//int estimation_x = (Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x) / 2;
+	//int estimation_y = (Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y) / 2;
+	int estimation_x = (Application::Data::gazePointHistFeaturesGP.x + Application::Data::gazePointHistFeaturesGPLeft.x) / 2;
+	int estimation_y = (Application::Data::gazePointHistFeaturesGP.y + Application::Data::gazePointHistFeaturesGPLeft.y) / 2;
 
+	//std::cout << "Estimations: " << estimation_x << ", " << estimation_y << std::endl;
 
-	if(Application::status == Application::STATUS_CALIBRATED) {
-		// Get the current estimation and calculate the image index it corresponds to
-		//int estimation_x = (Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x) / 2;
-		//int estimation_y = (Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y) / 2;
-		int estimation_x = (Application::Data::gazePointHistFeaturesGP.x + Application::Data::gazePointHistFeaturesGPLeft.x) / 2;
-		int estimation_y = (Application::Data::gazePointHistFeaturesGP.y + Application::Data::gazePointHistFeaturesGPLeft.y) / 2;
+	int index_x = estimation_x / (_interfaceStimuli.size().width / picturesX);
+	int index_y = estimation_y / (_interfaceStimuli.size().height / picturesY);
+	int gazedImageIndex = (index_x * picturesX) + index_y;
 
-		//std::cout << "Estimations: " << estimation_x << ", " << estimation_y << std::endl;
- 
-		int index_x = estimation_x / (_interfaceStimuli.size().width / picturesX);
-		int index_y = estimation_y / (_interfaceStimuli.size().height / picturesY);
-		int gazedImageIndex = (index_x * picturesX) + index_y;
-
-		// Show the related text information on the second screen
-		if (gazedImageIndex < (picturesX * picturesY)) {
-			cv::resize(_textImages[gazedImageIndex], _interfaceText, _interfaceText.size());
-		}
-		else {
-			_interfaceText.setTo(cv::Scalar(255,255,255));
-		}
-
-		// Draw rectangle around the image subject is looking at
-		_interfaceStimuli.copyTo(_interfaceStimuliWithOverlay);
-		cv::Rect roiRect = cv::Rect(index_x * _interfaceStimuli.size().width/picturesX, index_y * _interfaceStimuli.size().height/picturesY, _interfaceStimuli.size().width/picturesX, _interfaceStimuli.size().height/picturesY);
-		cv::rectangle(_interfaceStimuliWithOverlay, roiRect, cv::Scalar(255,0,0), 10, 8);
-
-
-		_window.showImage(_interfaceStimuliWithOverlay);
-		_window2.showImage(_interfaceText);
+	// Show the related text information on the second screen
+	if (gazedImageIndex < (picturesX * picturesY)) {
+		cv::resize(_textImages[gazedImageIndex], _interfaceText, _interfaceText.size());
 	}
+	else {
+		_interfaceText.setTo(cv::Scalar(255,255,255));
+	}
+
+	// Draw rectangle around the image subject is looking at
+	_interfaceStimuli.copyTo(_interfaceStimuliWithOverlay);
+	cv::Rect roiRect = cv::Rect(index_x * _interfaceStimuli.size().width/picturesX, index_y * _interfaceStimuli.size().height/picturesY, _interfaceStimuli.size().width/picturesX, _interfaceStimuli.size().height/picturesY);
+	cv::rectangle(_interfaceStimuliWithOverlay, roiRect, cv::Scalar(255,0,0), 10, 8);
+
+
+	_window.showImage(_interfaceStimuliWithOverlay);
+	_window2.showImage(_interfaceText);
 }
 
 

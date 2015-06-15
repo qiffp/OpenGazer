@@ -4,9 +4,9 @@
 CONFIG	+=	qt
 QT += gui widgets
 
-HEADERS += 	Calibrator.h HeadTracker.h LeastSquares.h EyeExtractor.h GazeTracker.h MainGazeTracker.h OutputMethods.h PointTracker.h FaceDetector.h Point.h utils.h BlinkDetector.h FeatureDetector.h mir.h DebugWindow.h Application.h Video.h Detection.h Command.h ImageWindow.h ImageWidget.h TestWindow.h Prefix.hpp HeadCompensation.h HiResTimer.h EyeCenterDetector.h ExtractEyeFeaturesSegmentation.h GoogleGlassWindow.h EyeExtractorSegmentationGroundTruth.h GazeTrackerHistogramFeatures.h
+HEADERS += 	Calibrator.h HeadTracker.h LeastSquares.h EyeExtractor.h GazeTracker.h MainGazeTracker.h OutputMethods.h PointTracker.h FaceDetector.h Point.h utils.h BlinkDetector.h FeatureDetector.h mir.h DebugWindow.h Application.h Video.h Detection.h Command.h ImageWindow.h ImageWidget.h TestWindow.h Prefix.hpp HeadCompensation.h HiResTimer.h EyeCenterDetector.h ExtractEyeFeaturesSegmentation.h GoogleGlassWindow.h EyeExtractorSegmentationGroundTruth.h GazeTrackerHistogramFeatures.h FrogGame.h
 
-SOURCES += 	opengazer.cpp Calibrator.cpp HeadTracker.cpp LeastSquares.cpp EyeExtractor.cpp GazeTracker.cpp MainGazeTracker.cpp OutputMethods.cpp PointTracker.cpp FaceDetector.cpp Point.cpp utils.cpp BlinkDetector.cpp FeatureDetector.cpp mir.cpp DebugWindow.cpp Application.cpp Video.cpp Detection.cpp Command.cpp ImageWindow.cpp ImageWidget.cpp TestWindow.cpp HeadCompensation.cpp HiResTimer.cpp EyeCenterDetector.cpp ExtractEyeFeaturesSegmentation.cpp GoogleGlassWindow.cpp EyeExtractorSegmentationGroundTruth.cpp GazeTrackerHistogramFeatures.cpp
+SOURCES += 	opengazer.cpp Calibrator.cpp HeadTracker.cpp LeastSquares.cpp EyeExtractor.cpp GazeTracker.cpp MainGazeTracker.cpp OutputMethods.cpp PointTracker.cpp FaceDetector.cpp Point.cpp utils.cpp BlinkDetector.cpp FeatureDetector.cpp mir.cpp DebugWindow.cpp Application.cpp Video.cpp Detection.cpp Command.cpp ImageWindow.cpp ImageWidget.cpp TestWindow.cpp HeadCompensation.cpp HiResTimer.cpp EyeCenterDetector.cpp ExtractEyeFeaturesSegmentation.cpp GoogleGlassWindow.cpp EyeExtractorSegmentationGroundTruth.cpp GazeTrackerHistogramFeatures.cpp FrogGame.cpp
 
 TARGET  = 	opengazer
 

@@ -33,6 +33,7 @@ namespace Application {
 		DebugWindow *debugWindow;
 		TestWindow *testWindow;
 		GoogleGlassWindow *googleGlassWindow;
+		FrogGame *frogGame;
 	}
 	
 	namespace Data {
