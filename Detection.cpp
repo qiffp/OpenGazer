@@ -284,8 +284,9 @@ namespace Detection {
 		double xDiff = rightEyeCenterX - leftEyeCenterX;
 		double yDiff = rightEyeCenterY - leftEyeCenterY;
 		
-		points[0] = Point(leftEyeCenterX - 0.29 * xDiff, leftEyeCenterY - 0.29 * yDiff);// + xDiff/40);
-		points[1] = Point(rightEyeCenterX + 0.29 * xDiff, rightEyeCenterY + 0.29 * yDiff);// + xDiff/40);
+		double eyeSeparation = 0.33;	// = 0.29; 
+		points[0] = Point(leftEyeCenterX - eyeSeparation * xDiff, leftEyeCenterY - eyeSeparation * yDiff);// + xDiff/40);
+		points[1] = Point(rightEyeCenterX + eyeSeparation * xDiff, rightEyeCenterY + eyeSeparation * yDiff);// + xDiff/40);
 
 		/// Drawing a circle around corners
 		//for (int i = 0; i < cornerCount; i++) {

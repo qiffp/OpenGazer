@@ -34,6 +34,8 @@ namespace Application {
 		TestWindow *testWindow;
 		GoogleGlassWindow *googleGlassWindow;
 		FrogGame *frogGame;
+		
+		HistogramFeatureExtractor *histFeatureExtractor;
 	}
 	
 	namespace Data {

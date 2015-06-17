@@ -156,6 +156,8 @@ namespace Utils {
 	void mapToNeuralNetworkCoordinates(Point point, Point &nnPoint);
 	void mapFromNeuralNetworkToScreenCoordinates(Point nnPoint, Point &point);
 
+	void boundToScreenArea(Point &estimate);
+	
 	std::string getUniqueFileName(std::string directory, std::string baseFileName);
 	
 	// Functions for reading calibration and testing targets

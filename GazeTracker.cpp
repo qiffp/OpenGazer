@@ -72,30 +72,9 @@ void GazeTracker::removeCalibrationError(Point &estimate) {
 
 	//std::cout << "Estimation corrected from: (" << x[0][0] << ", " << x[0][1] << ") to (" << estimate.x << ", " << estimate.y << ")" << std::endl;
 
-	boundToScreenArea(estimate);
+	Utils::boundToScreenArea(estimate);
 
 	//std::cout << "Estimation corrected from: (" << x[0][0] << ", " << x[0][1] << ") to (" << estimate.x << ", " << estimate.y << ")" << std::endl;
-}
-
-void GazeTracker::boundToScreenArea(Point &estimate) {
-	cv::Rect *rect = Utils::getDebugMonitorGeometry();
-
-	// If x or y coordinates are outside screen boundaries, correct them
-	if (estimate.x < rect->x) {
-		estimate.x = rect->x;
-	}
-
-	if (estimate.y < rect->y) {
-		estimate.y = rect->y;
-	}
-
-	if (estimate.x >= rect->x + rect->width) {
-		estimate.x = rect->x + rect->width;
-	}
-
-	if (estimate.y >= rect->y + rect->height) {
-		estimate.y = rect->y + rect->height;
-	}
 }
 
 void GazeTracker::draw() {
@@ -159,8 +138,8 @@ void GazeTracker::updateEstimations() {
 		Application::Data::gazePointGPLeft = Point(_gaussianProcessXLeft->getmean(Utils::SharedImage(image, &ignore)), _gaussianProcessYLeft->getmean(Utils::SharedImage(image, &ignore)));
 
 		// Bound estimations to screen area
-		boundToScreenArea(Application::Data::gazePointGP);
-		boundToScreenArea(Application::Data::gazePointGPLeft);
+		Utils::boundToScreenArea(Application::Data::gazePointGP);
+		Utils::boundToScreenArea(Application::Data::gazePointGPLeft);
 	}
 }
 

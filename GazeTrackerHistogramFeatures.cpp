@@ -110,69 +110,6 @@ void GazeTrackerHistogramFeatures::addExemplar() {
 	updateGaussianProcesses();
 }
 
-void GazeTrackerHistogramFeatures::removeCalibrationError(Point &estimate) {
-	double x[1][2];
-	double output[1];
-	double sigma[1];
-	int pointCount = Application::Data::calibrationTargets.size() + 4;
-
-	if (_betaX == -1 && _gammaX == -1) {
-		return;
-	}
-
-	x[0][0] = estimate.x;
-	x[0][1] = estimate.y;
-
-	//std::cout << "INSIDE CAL ERR REM. BETA = " << _betaX << ", " << _betaY << ", GAMMA IS " << _gammaX << ", " << _gammaY << std::endl;
-	//for (int i = 0; i < pointCount; i++) {
-	//	std::cout << _xv[i][0] << ", " << _xv[i][1] << std::endl;
-	//}
-
-	int N = pointCount;
-	N = binomialInv(N, 2) - 1;
-
-	//std::cout << "CALIB. ERROR REMOVAL. Target size: " << pointCount << ", " << N << std::endl;
-
-	mirEvaluate(1, 2, 1, (double *)x, pointCount, (double *)_xv, _fvX, _sigv, 0, NULL, NULL, NULL, _betaX, _gammaX, N, 2, output, sigma);
-
-	if (output[0] >= -100) {
-		estimate.x = output[0];
-	}
-
-	mirEvaluate(1, 2, 1, (double *)x, pointCount, (double *)_xv, _fvY, _sigv, 0, NULL, NULL, NULL, _betaY, _gammaY, N, 2, output, sigma);
-
-	if (output[0] >= -100) {
-		estimate.y = output[0];
-	}
-
-	//std::cout << "Estimation corrected from: (" << x[0][0] << ", " << x[0][1] << ") to (" << estimate.x << ", " << estimate.y << ")" << std::endl;
-
-	boundToScreenArea(estimate);
-
-	//std::cout << "Estimation corrected from: (" << x[0][0] << ", " << x[0][1] << ") to (" << estimate.x << ", " << estimate.y << ")" << std::endl;
-}
-
-void GazeTrackerHistogramFeatures::boundToScreenArea(Point &estimate) {
-	cv::Rect *rect = Utils::getDebugMonitorGeometry();
-
-	// If x or y coordinates are outside screen boundaries, correct them
-	if (estimate.x < rect->x) {
-		estimate.x = rect->x;
-	}
-
-	if (estimate.y < rect->y) {
-		estimate.y = rect->y;
-	}
-
-	if (estimate.x >= rect->x + rect->width) {
-		estimate.x = rect->x + rect->width;
-	}
-
-	if (estimate.y >= rect->y + rect->height) {
-		estimate.y = rect->y + rect->height;
-	}
-}
-
 void GazeTrackerHistogramFeatures::draw() {
 	if (!Application::Components::pointTracker->isTrackingSuccessful())
 		return;
@@ -283,8 +220,8 @@ void GazeTrackerHistogramFeatures::updateEstimations() {
 	std::cout << "Updated estimations" << std::endl;
 		//ARCADI updateEstimations
 
-		boundToScreenArea(Application::Data::gazePointHistFeaturesGP);
-		boundToScreenArea(Application::Data::gazePointHistFeaturesGPLeft);
+		Utils::boundToScreenArea(Application::Data::gazePointHistFeaturesGP);
+		Utils::boundToScreenArea(Application::Data::gazePointHistFeaturesGPLeft);
 
 	std::cout << "Bound to scr coords" << std::endl;
 /*
@@ -295,8 +232,8 @@ void GazeTrackerHistogramFeatures::updateEstimations() {
 		Application::Data::gazePointGPLeft = Point(_gaussianProcessXLeft->getmean(Utils::SharedImage(image, &ignore)), _gaussianProcessYLeft->getmean(Utils::SharedImage(image, &ignore)));
 
 		// Bound estimations to screen area
-		boundToScreenArea(Application::Data::gazePointGP);
-		boundToScreenArea(Application::Data::gazePointGPLeft);
+		Utils::boundToScreenArea(Application::Data::gazePointGP);
+		Utils::boundToScreenArea(Application::Data::gazePointGPLeft);
 */
 	}
 	else {

@@ -189,6 +189,7 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	Application::Components::eyeExtractorSegmentationGroundTruth = new EyeExtractorSegmentationGroundTruth();
 	Application::Components::eyeSegmentation = new ExtractEyeFeaturesSegmentation();
 	Application::Components::eyeCenterDetector = new EyeCenterDetector();
+	Application::Components::histFeatureExtractor = new HistogramFeatureExtractor();
 	Application::Components::gazeTracker = new GazeTracker();
 	Application::Components::gazeTrackerHistogramFeatures = new GazeTrackerHistogramFeatures();
 	Application::Components::headTracker = new HeadTracker();
@@ -235,11 +236,12 @@ void MainGazeTracker::process() {
 		Application::Components::pointTracker->process();
 		Application::Components::headTracker->process();
 		Application::Components::eyeExtractor->process();
+		Application::Components::histFeatureExtractor->process();
 		//Application::Components::eyeExtractorSegmentationGroundTruth->process();
-		Application::Components::eyeSegmentation->process();
 		//Application::Components::eyeCenterDetector->process();
+		//Application::Components::eyeSegmentation->process();
 		Application::Components::gazeTracker->process();
-		Application::Components::gazeTrackerHistogramFeatures->process();
+		//Application::Components::gazeTrackerHistogramFeatures->process();
 
 		//Application::Components::googleGlassWindow->process();
 		Application::Components::frogGame->process();
@@ -251,11 +253,12 @@ void MainGazeTracker::process() {
 		Application::Components::pointTracker->draw();
 		Application::Components::headTracker->draw();
 		Application::Components::eyeExtractor->draw();
+		Application::Components::histFeatureExtractor->draw();
 		//Application::Components::eyeExtractorSegmentationGroundTruth->draw();
-		Application::Components::eyeSegmentation->draw();
 		//Application::Components::eyeCenterDetector->draw();
+		//Application::Components::eyeSegmentation->draw();
 		Application::Components::gazeTracker->draw();
-		Application::Components::gazeTrackerHistogramFeatures->draw();
+		//Application::Components::gazeTrackerHistogramFeatures->draw();
 
 		//Application::Components::googleGlassWindow->draw();
 		Application::Components::frogGame->draw();

@@ -92,10 +92,10 @@ void GoogleGlassWindow::process() {
 	}
 
 	// Get the current estimation and calculate the image index it corresponds to
-	//int estimation_x = (Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x) / 2;
-	//int estimation_y = (Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y) / 2;
-	int estimation_x = (Application::Data::gazePointHistFeaturesGP.x + Application::Data::gazePointHistFeaturesGPLeft.x) / 2;
-	int estimation_y = (Application::Data::gazePointHistFeaturesGP.y + Application::Data::gazePointHistFeaturesGPLeft.y) / 2;
+	int estimation_x = (Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x) / 2;
+	int estimation_y = (Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y) / 2;
+	//int estimation_x = (Application::Data::gazePointHistFeaturesGP.x + Application::Data::gazePointHistFeaturesGPLeft.x) / 2;
+	//int estimation_y = (Application::Data::gazePointHistFeaturesGP.y + Application::Data::gazePointHistFeaturesGPLeft.y) / 2;
 
 	//std::cout << "Estimations: " << estimation_x << ", " << estimation_y << std::endl;
 

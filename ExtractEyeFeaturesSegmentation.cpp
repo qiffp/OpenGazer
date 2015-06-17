@@ -16,8 +16,8 @@
 #define SegmentationVideoFlag 0
 
 
-const int ExtractEyeFeaturesSegmentation::eyeDX = 32;
-const int ExtractEyeFeaturesSegmentation::eyeDY = 16;
+const int ExtractEyeFeaturesSegmentation::eyeDX = 64;
+const int ExtractEyeFeaturesSegmentation::eyeDY = 32;
 const cv::Size ExtractEyeFeaturesSegmentation::eyeSize = cv::Size(eyeDX * 2, eyeDY * 2);
 
 
@@ -28,13 +28,12 @@ ExtractEyeFeaturesSegmentation::ExtractEyeFeaturesSegmentation()
 {
 	elipse_gray = cv::imread("./elipse.jpg", CV_LOAD_IMAGE_GRAYSCALE);
 
-	sizeImageDisk = 5;
+	sizeImageDisk = 10; //5;
 	for (int j=0; j<VECTOR_SIZE; j++) {
-		irisTemplateDisk[j] = constructTemplateDisk(sizeImageDisk+j);
+		irisTemplateDisk[j] = constructTemplateDisk(sizeImageDisk+j*2);
 
 		Gaussian2D[j].create(cv::Size(EyeExtractor::eyeSize.width - irisTemplateDisk[j].size().width + 1, EyeExtractor::eyeSize.height - irisTemplateDisk[j].size().height + 1), CV_32FC1);
-
-		/* Gaussian2D[j] = TODO ONUR UNCOMMENTED, NOT NECESSARY */
+		
 		CreateTemplateGausian2D(Gaussian2D[j]);
 	}
 
@@ -90,7 +89,7 @@ void ExtractEyeFeaturesSegmentation::processToExtractFeatures() {
 
 		for (j=0; j<VECTOR_SIZE; j++){
 
-
+			/* ARCADI FINAL
 			Matches[j].create(cv::Size(Temporary_elipsed.size().width - irisTemplateDisk[j].size().width + 1, Temporary_elipsed.size().height - irisTemplateDisk[j].size().height + 1), CV_32FC1);
 			
 			MatchesSmoothed[j].create(cv::Size(Matches[j].size().width - (SmoothBlockSize - 1)/2, Matches[j].size().height - (SmoothBlockSize - 1)/2), CV_32FC1);
@@ -107,6 +106,28 @@ void ExtractEyeFeaturesSegmentation::processToExtractFeatures() {
 		    							Matches[j].size().height - (SmoothBlockSize - 1)/2)).copyTo(MatchesSmoothed[j]);
 
 			minMaxLoc(MatchesSmoothed[j], &MinVal[j], &MaxVal[j], &MinLoc[j], &MaxLoc[j]);
+			*/
+			
+			Matches[j].create(cv::Size(Temporary_elipsed.size().width - irisTemplateDisk[j].size().width + 1, Temporary_elipsed.size().height - irisTemplateDisk[j].size().height + 1), CV_32FC1);
+			
+			matchTemplate(Temporary_elipsed, irisTemplateDisk[j], Matches[j], comparison_method);
+
+			multiply(Matches[j], Gaussian2D[j], Matches[j]);
+
+			minMaxLoc(Matches[j], &MinVal[j], &MaxVal[j], &MinLoc[j], &MaxLoc[j]);
+			
+			/* OLD METHOD
+			
+			Matches = cvCreateImage(cvSize(Temporary_elipsed->width - irisTemplateDisk[j]->width + 1, Temporary_elipsed->height - irisTemplateDisk[j]->height + 1), IPL_DEPTH_32F, 1);
+
+			cvMatchTemplate(Temporary_elipsed, irisTemplateDisk[j], Matches, comparison_method);
+
+			//cvMinMaxLoc(Matches, &MinVal[j], &MaxVal[j], &MinLoc[j], &MaxLoc[j]);
+
+			cvMul(Matches, Gaussian2D[j], Matches);
+
+			cvMinMaxLoc(Matches, &MinVal[j], &MaxVal[j], &MinLoc[j], &MaxLoc[j]);
+			*/
 
 		}
 
@@ -126,11 +147,16 @@ void ExtractEyeFeaturesSegmentation::processToExtractFeatures() {
 			}
 		}
 
+/* ARCADI FINAL
 		int x1 = fmax(0, MaxLoc[i].x + (SmoothBlockSize - 1)/2 - (BlockSegmentation/2));
 		int y1 = fmax(0, MaxLoc[i].y + (SmoothBlockSize - 1)/2 - (BlockSegmentation/2));
 		int x2 = fmin(BlockSegmentation, Temporary_elipsed.size().width - MaxLoc[i].x + (SmoothBlockSize - 1)/2 - (BlockSegmentation/2));
 		int y2 = fmin(BlockSegmentation, Temporary_elipsed.size().height - MaxLoc[i].y + (SmoothBlockSize - 1)/2 - (BlockSegmentation/2));
-
+*/
+		int x1 = MaxLoc[i].x;
+		int y1 = MaxLoc[i].y;
+		int x2 = irisTemplateDisk[i].size().width;
+		int y2 = irisTemplateDisk[i].size().height;
 
 		if (SegmentationVideoFlag == 1) {
 
@@ -190,8 +216,6 @@ cv::Mat ExtractEyeFeaturesSegmentation::constructTemplateDisk(int sizeDisk) {
 	return irisTemplateDisk;
 }
 
-
-// ME HE QUEDADO AQUI!!!
 
 cv::Mat ExtractEyeFeaturesSegmentation::SegmentationWithOutputVideo(cv::Mat Temporary, cv::Mat image) {
 	cv::Mat im_bw(Temporary.size(), CV_8UC1);
@@ -568,7 +592,7 @@ void ExtractEyeFeaturesSegmentation::draw() {
 	int stepY = 2*eyeDY;
 
 
-	histogram_horizontal.copyTo(image(cv::Rect(baseX + stepX * 1, baseY + stepY * 2, eyeDX, eyeDY)));
+	histogram_horizontal.copyTo(image(cv::Rect(baseX, baseY + stepY * 2, eyeDX, eyeDY)));
 
 	cv::Mat temp = histogram_vertical.t();
 	temp.copyTo(image(cv::Rect(baseX + stepX * 1, baseY + stepY * 3, eyeDX, eyeDY)));
@@ -577,5 +601,4 @@ void ExtractEyeFeaturesSegmentation::draw() {
 
 	temp = histogram_vertical_left.t();
 	temp.copyTo(image(cv::Rect(baseX + 100, baseY + stepY * 3, eyeDX, eyeDY)));
-	
 }

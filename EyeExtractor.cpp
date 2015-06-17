@@ -4,8 +4,8 @@
 #include "Application.h"
 #include "utils.h"
 
-const int EyeExtractor::eyeDX = 32;
-const int EyeExtractor::eyeDY = 16;
+const int EyeExtractor::eyeDX = 64;
+const int EyeExtractor::eyeDY = 32;
 const cv::Size EyeExtractor::eyeSize = cv::Size(eyeDX * 2, eyeDY * 2);
 
 EyeExtractor::EyeExtractor():
@@ -92,7 +92,7 @@ void EyeExtractor::extractEye(const cv::Mat originalImage) {
 
 	
 	double dx = abs(x1 - x0);	// Horizontal distance between eye corners in image
-	double dy = 0.17 * dx;		// %20 percent of horizontal distance (used as height of extracted eyes)
+	double dy = 0.19 * dx;		// %20 percent of horizontal distance (used as height of extracted eyes)
 
 	// Calculate the roll angle of the head (using eye corner positions)
 	double rollAngle = atan((y1-y0)/(x1 - x0));
@@ -154,7 +154,7 @@ void EyeExtractor::extractEyeLeft(const cv::Mat originalImage) {
 
 
 	double dx = abs(x1 - x0);	// Horizontal distance between eye corners in image
-	double dy = 0.17 * dx;		// %20 percent of horizontal distance (used as height of extracted eyes)
+	double dy = 0.19 * dx;		// %20 percent of horizontal distance (used as height of extracted eyes)
 
 	// Calculate the roll angle of the head (using eye corner positions)
 	double rollAngle = atan((y1-y0)/(x1 - x0));
@@ -206,12 +206,12 @@ void EyeExtractor::draw() {
 	int baseX = 0;
 	int baseY = 0;
 	int stepX = 0;
-	int stepY = 2*eyeDY;
+	int stepY = eyeDY;
 
 	cv::cvtColor(*eyeGrey.get(), image(cv::Rect(baseX, baseY, eyeDX, eyeDY)), CV_GRAY2RGB);
 	//cv::cvtColor(*eyeGrey.get(), image(cv::Rect(baseX + stepX * 1, baseY + stepY * 1, eyeDX, eyeDY)), CV_GRAY2RGB);
 	
-	cv::cvtColor(*eyeGreyLeft.get(), image(cv::Rect(baseX + 100, baseY, eyeDX, eyeDY)), CV_GRAY2RGB);
+	cv::cvtColor(*eyeGreyLeft.get(), image(cv::Rect(baseX + 140, baseY, eyeDX, eyeDY)), CV_GRAY2RGB);
 	//cv::cvtColor(*eyeGreyLeft.get(), image(cv::Rect(baseX + 100, baseY + stepY * 1, eyeDX, eyeDY)), CV_GRAY2RGB);
 }
 

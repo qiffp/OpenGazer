@@ -1,7 +1,7 @@
 #pragma once
 #include "utils.h"
 
-#define VECTOR_SIZE 1
+#define VECTOR_SIZE 10
 
 class ExtractEyeFeaturesSegmentation {
 

@@ -62,6 +62,27 @@ namespace Utils {
 
 		return cv::Point(xFactor*point.x, yFactor*point.y);
 	}
+	
+	void boundToScreenArea(Point &estimate) {
+		cv::Rect *rect = Utils::getDebugMonitorGeometry();
+
+		// If x or y coordinates are outside screen boundaries, correct them
+		if (estimate.x < rect->x) {
+			estimate.x = rect->x;
+		}
+
+		if (estimate.y < rect->y) {
+			estimate.y = rect->y;
+		}
+
+		if (estimate.x >= rect->x + rect->width) {
+			estimate.x = rect->x + rect->width;
+		}
+
+		if (estimate.y >= rect->y + rect->height) {
+			estimate.y = rect->y + rect->height;
+		}
+	}
 
 
 	void mapToVideoCoordinates(Point monitor2Point, double resolution, Point &videoPoint, bool reverseX) {

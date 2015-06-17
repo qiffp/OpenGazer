@@ -16,7 +16,6 @@ public:
 
 	// Calibration error removal
 	void removeCalibrationError(Point &estimate);
-	void boundToScreenArea(Point &estimate);
 
 	void draw();
 	void process();
