@@ -1,4 +1,4 @@
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 
 #include "EyeExtractor.h"
 #include "Application.h"
@@ -26,6 +26,10 @@ EyeExtractor::EyeExtractor():
 EyeExtractor::~EyeExtractor() {}
 
 void EyeExtractor::process() {
+	if(Application::Signals::initiateCalibrationFrameNo == Application::Components::videoInput->frameCount) {
+		start();
+	}
+
 	if (Application::Components::pointTracker->isTrackingSuccessful()) {
 		// Extract eye images using point tracker results
 		extractEye(Application::Components::videoInput->frame);

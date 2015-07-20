@@ -1,9 +1,10 @@
 #include "TestWindow.h"
 #include "Application.h"
 
-TestWindow::TestWindow() : 
+TestWindow::TestWindow(const std::vector<Point> &points) : 
 	_window(1, false)	// Create this window in the debug screen
  {
+	_points = points;
 	_frameNumber = -1;
 	
 	_screenImage.create(cv::Size(_window.size().width(), _window.size().height()), CV_8UC3);
@@ -15,6 +16,10 @@ TestWindow::~TestWindow() {}
 
 // Main processing function
 void TestWindow::process() {
+	if(Application::Signals::initiateTestingFrameNo == Application::Components::videoInput->frameCount) {
+		start();
+	}
+
 	if(!isActive())
 		return;
 	
@@ -32,8 +37,7 @@ void TestWindow::process() {
 
 
 // Start testing procedure. Reset frame counter and save target point locations
-void TestWindow::start(const std::vector<Point> &points) {
-	_points = points;
+void TestWindow::start() {
 	_frameNumber = 0;
 	_window.show();
 	

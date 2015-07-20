@@ -1,5 +1,7 @@
 #pragma once
 
+#include <opencv2/objdetect/objdetect.hpp>
+
 class FaceDetector {
 public:
 	static FaceDetector faceDetector;

@@ -10,6 +10,7 @@ public:
 	static const int eyePoint2 = 1;
 	std::vector<uchar> status;
 	std::vector<cv::Point2f> origPoints, currentPoints, lastPoints;
+	cv::Mat grey;
 
 	PointTracker(const cv::Size &size);
 	
@@ -35,7 +36,7 @@ public:
 private:
 	static const int _winSize = 11;
 	int _flags;
-	cv::Mat _grey, _origGrey, _lastGrey;
+	cv::Mat _origGrey, _lastGrey;
 	static const int _pyramidDepth = 2;
 	
 	void synchronizePoints();

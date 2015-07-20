@@ -7,51 +7,67 @@ namespace Application {
 	int testDwelltimeParameter = 20;
 	int sleepParameter = 0;
 	std::ofstream resultsOutputFile;
-	
+
 	namespace Settings {
 		bool videoOverlays = false;
 		bool recording = false;
 	}
-	
+
 	namespace Components {
+		// Video input and output
 		boost::scoped_ptr<VideoInput> videoInput;
 		boost::scoped_ptr<VideoWriter> video;
-		
+
+		// The main class containing the processing loop
 		MainGazeTracker *mainTracker;
-		
+
+		// Point selection component for initialization
+		AnchorPointSelector *anchorPointSelector;
+
+		// Preprocessing (before gaze estimation) components
+		// that prepare the necessary data used in estimation
 		PointTracker *pointTracker;
-		EyeExtractor *eyeExtractor;
-		EyeExtractorSegmentationGroundTruth *eyeExtractorSegmentationGroundTruth;
-		ExtractEyeFeaturesSegmentation *eyeSegmentation;
-		EyeCenterDetector *eyeCenterDetector;
-		GazeTracker *gazeTracker;
-		GazeTrackerHistogramFeatures *gazeTrackerHistogramFeatures;
+		PointTrackerWithTemplate *pointTrackerWithTemplate;
 		HeadTracker *headTracker;
 		HeadCompensation *headCompensation;
+		EyeExtractor *eyeExtractor;
+		EyeExtractorSegmentationGroundTruth *eyeExtractorSegmentationGroundTruth;
+		EyeCenterDetector *eyeCenterDetector;
+		HistogramFeatureExtractor *histFeatureExtractor;
+
+		// Gaze tracker components
+		GazeTracker *gazeTracker;
+		GazeTrackerHistogramFeatures *gazeTrackerHistogramFeatures;
+
+		// Other components mainly taking care of calibration/test flow and display
 		Calibrator *calibrator;
-		
 		DebugWindow *debugWindow;
 		TestWindow *testWindow;
 		GoogleGlassWindow *googleGlassWindow;
 		FrogGame *frogGame;
-		
-		HistogramFeatureExtractor *histFeatureExtractor;
 	}
-	
+
+	namespace Signals {
+		int initiateCalibrationFrameNo = -1;
+		int initiateTestingFrameNo = -1;
+		int initiatePointSelectionFrameNo = -1;
+		int initiatePointClearingFrameNo = -1;
+	}
+
 	namespace Data {
 		std::vector<Point> calibrationTargets;
-		
+
 		Point gazePointGP;
 		Point gazePointGPLeft;
 
 		// Outputs for Histogram Features Gaussian Process estimator
 		Point gazePointHistFeaturesGP;
 		Point gazePointHistFeaturesGPLeft;
-		
+
 		Point gazePointNN;
 		Point gazePointNNLeft;
-		
-		
+
+
 	}
 
 	std::vector<boost::shared_ptr<AbstractStore> > getStores() {
@@ -60,10 +76,8 @@ namespace Application {
 		if (stores.size() < 1) {
 			stores.push_back(boost::shared_ptr<AbstractStore>(new SocketStore()));
 			//stores.push_back(boost::shared_ptr<AbstractStore>(new StreamStore(std::cout)));
-			//stores.push_back(boost::shared_ptr<AbstractStore>(new WindowStore(WindowPointer::PointerSpec(20, 30, 0, 0, 1), WindowPointer::PointerSpec(20, 20, 0, 1, 1), WindowPointer::PointerSpec(30, 30, 1, 0, 1))));
 		}
 
 		return stores;
 	}
 }
-

@@ -4,7 +4,7 @@
  */
 #include "EyeCenterDetector.h"
 
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 
 #include <iostream>
 #include <queue>
@@ -16,6 +16,9 @@ EyeCenterDetector::EyeCenterDetector() {}
 
 
 void EyeCenterDetector::process() {
+  if (!Application::Components::pointTracker->isTrackingSuccessful())
+    return;
+
 	this->eyeCenter = findEyeCenter(*Application::Components::eyeExtractor->eyeGrey);
 	this->eyeCenterLeft = findEyeCenter(*Application::Components::eyeExtractor->eyeGreyLeft);
 }
@@ -27,7 +30,7 @@ void EyeCenterDetector::draw() {
 	cv::Mat image = Application::Components::videoInput->debugFrame;
 
 	cv::circle(image, cv::Point(this->eyeCenter.x, this->eyeCenter.y), 3, cv::Scalar(255,0,0), -1, 8, 0);
-	cv::circle(image, cv::Point(this->eyeCenterLeft.x + 100, this->eyeCenterLeft.y), 3, cv::Scalar(255,0,0), -1, 8, 0);
+	cv::circle(image, cv::Point(this->eyeCenterLeft.x + 140, this->eyeCenterLeft.y), 3, cv::Scalar(255,0,0), -1, 8, 0);
 }
 
 /*

@@ -5,14 +5,14 @@
 
 class Calibrator {
 public:
-	Calibrator();
+	Calibrator(const std::vector<Point> &points);
 	~Calibrator();
 	
 	// Main processing function
 	void process();
 	
 	// Calibration API functions (for future use)
-	void start(const std::vector<Point> &points);
+	void start();
 	void pointStart();
 	void pointEnd();
 	void abortCalibration();

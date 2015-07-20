@@ -1,8 +1,14 @@
 #pragma once
 
 #include "Point.h"
+#include <opencv2/objdetect/objdetect.hpp>
 
-namespace Detection {
+class AnchorPointSelector {
+	cv::CascadeClassifier faceCascade;
+	cv::CascadeClassifier eyeCascade;
+	cv::CascadeClassifier noseCascade;
+	cv::CascadeClassifier mouthCascade;
+
 	void choosePoints();
 	void loadCascades();
 	bool detectLargestObject(cv::CascadeClassifier cascade, cv::Mat image, cv::Rect &largestObject, double scaleFactor = 1.1, int minNeighbors = 3, int flags = 0, cv::Size minSize = cv::Size());
@@ -10,4 +16,12 @@ namespace Detection {
 	bool detectMouth(cv::Mat image, double resolution, cv::Rect mouthRect, Point points[]);
 	bool detectEyeCorners(cv::Mat image, double resolution, Point points[]);
 	void detectEyebrowCorners(cv::Mat image, double resolution, cv::Rect eyebrowRect, Point points[]);
-}
+	std::vector<cv::Point2f>* detectCornersInGrayscale(cv::Mat eyeRegionImageGray, int cornerCount);
+	void checkRectSize(const cv::Mat &image, cv::Rect *rect);
+
+public:
+    AnchorPointSelector();
+    ~AnchorPointSelector(void);
+	void process();
+	void draw();
+};

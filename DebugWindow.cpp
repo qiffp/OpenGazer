@@ -19,6 +19,9 @@ DebugWindow::DebugWindow() :
 	shortcut = new QShortcut(QKeySequence(Qt::Key_X), &_window);
 	QObject::connect(shortcut, SIGNAL(activated()), Application::Components::mainTracker, SLOT(choosePoints()));
 	
+	shortcut = new QShortcut(QKeySequence(Qt::Key_Z), &_window);
+	QObject::connect(shortcut, SIGNAL(activated()), Application::Components::mainTracker, SLOT(clearPoints()));
+	
 	_window.show();
 	_window.raise();
 }

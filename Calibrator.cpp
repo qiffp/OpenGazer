@@ -1,7 +1,8 @@
 #include "Calibrator.h"
 #include "Application.h"
 
-Calibrator::Calibrator() {
+Calibrator::Calibrator(const std::vector<Point> &points) {
+	_points = points;
 	Application::Components::gazeTracker->clear();
 	
 	_frameNumber = -1;
@@ -16,6 +17,10 @@ Calibrator::~Calibrator() {}
 
 // Main processing function
 void Calibrator::process() {
+	if(Application::Signals::initiateCalibrationFrameNo == Application::Components::videoInput->frameCount) {
+		start();
+	}
+
 	if(!isActive())
 		return;
 	
@@ -40,8 +45,7 @@ void Calibrator::process() {
 
 // Start calibration procedure. Reset frame counter and save target point
 // locations
-void Calibrator::start(const std::vector<Point> &points) {
-	_points = points;
+void Calibrator::start() {
 	_frameNumber = 0;
 	_window.show();
 	Application::Data::calibrationTargets.clear();

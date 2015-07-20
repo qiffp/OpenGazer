@@ -1,4 +1,6 @@
 #include "FeatureDetector.h"
+
+#include <opencv2/imgproc/imgproc.hpp>
 #include "utils.h"
 
 FeatureDetector::FeatureDetector(cv::Size eyeSize):

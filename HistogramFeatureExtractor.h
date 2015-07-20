@@ -1,36 +1,37 @@
 #pragma once
 #include "utils.h"
 
+#define HORIZONTAL_BIN_SIZE 128
+#define VERTICAL_BIN_SIZE 64
+
+#define GRAY_LEVEL 127
+
 #define VECTOR_SIZE 10
 
 class HistogramFeatureExtractor {
-
-	int sizeImageDisk;
-	
-    cv::Mat Matches[VECTOR_SIZE];
-    cv::Mat MatchesSmoothed[VECTOR_SIZE];
-    cv::Mat elipse_gray;
-    cv::Mat irisTemplateDisk[VECTOR_SIZE];
-    cv::Mat irisTemplate;
-    cv::Mat Gaussian2D[VECTOR_SIZE];
-    double MinVal[VECTOR_SIZE], MaxVal[VECTOR_SIZE];
-    cv::Point MinLoc[VECTOR_SIZE], MaxLoc[VECTOR_SIZE];
-    cv::Scalar color, a[VECTOR_SIZE];
-	
-    cv::Mat histogram_horizontal, histogram_vertical, histogram_horizontal_left, histogram_vertical_left;
-	cv::Mat wholeSegmentation, wholeSegmentation_left;
+	cv::Mat _matches[VECTOR_SIZE];
+	cv::Mat _matchesSmoothed[VECTOR_SIZE];
+	cv::Mat _ellipseMask;
+	cv::Mat _irisTemplateDisk[VECTOR_SIZE];
+	cv::Mat _irisTemplate;
+	cv::Mat _gaussian2D[VECTOR_SIZE];
 
 public:
-    std::vector<int> vector_horizontal, vector_vertical, vector_horizontal_left, vector_vertical_left;
+	cv::Mat horizontalFeatures, verticalFeatures, horizontalFeaturesLeft, verticalFeaturesLeft;
+	cv::Mat wholeSegmentation, wholeSegmentationLeft;
+	cv::Mat eyeSegmentation, eyeSegmentationLeft;
 
-    HistogramFeatureExtractor();
-    ~HistogramFeatureExtractor(void);
-    void process();
-    void draw();
-    void processToExtractFeatures();
-    void constructTemplateDisk(int, int);
-    void Segmentation(cv::Mat, cv::Mat);
-    void CreateTemplateGausian2D(int);
-    void Histogram(cv::Mat, cv::Mat, cv::Mat, std::vector<int>*, std::vector<int>*);
+	HistogramFeatureExtractor();
+	~HistogramFeatureExtractor(void);
+	void process();
+	void draw();
 
+	// Functions to calculate the segmentation and extract the features
+	void extractFeatures();
+	void calculateSegmentation(cv::Mat, cv::Mat);
+	void calculateHistogram(cv::Mat, cv::Mat, cv::Mat);
+
+	// Initialization functions
+	void createTemplates(int, int);
+	void createGaussians(int);
 };

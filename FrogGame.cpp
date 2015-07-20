@@ -1,4 +1,4 @@
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 #include <sys/time.h>
 
 #include "FrogGame.h"

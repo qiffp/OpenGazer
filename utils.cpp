@@ -16,42 +16,42 @@ namespace Utils {
 
 	cv::Rect* getMonitorGeometryByIndex(int screenIndex) {
 		QDesktopWidget* desktop = QApplication::desktop();
-		
-		return new cv::Rect(desktop->availableGeometry(screenIndex).x(), 
-						desktop->availableGeometry(screenIndex).y(), 
-						desktop->availableGeometry(screenIndex).width(), 
+
+		return new cv::Rect(desktop->availableGeometry(screenIndex).x(),
+						desktop->availableGeometry(screenIndex).y(),
+						desktop->availableGeometry(screenIndex).width(),
 						desktop->availableGeometry(screenIndex).height());
 	}
-	
+
 	cv::Rect* getSecondaryMonitorGeometry() {
 		QDesktopWidget* desktop = QApplication::desktop();
-		
+
 		// Return last monitor geometry
-		return getMonitorGeometryByIndex(desktop->screenCount()-1);
-		
+		//return getMonitorGeometryByIndex(desktop->screenCount()-1);
+
 		// For replaying experiment videos, return false geometry for 1920x1080 monitor
-		//return new cv::Rect(0, 0, 1920, 1080);
+		return new cv::Rect(0, 0, 1280, 777);
 	}
-	
+
 	cv::Rect* getDebugMonitorGeometry() {
 		// Return default monitor geometry
-		return getMonitorGeometryByIndex(-1);
+		//return getMonitorGeometryByIndex(-1);
 
 		// For using a smaller debug screen, override the debug monitor resolution
-		//return new cv::Rect(0, 0, 640, 480);
+		return new cv::Rect(0, 0, 1280, 777);
 	}
-	
+
 	void mapToFirstMonitorCoordinates(Point monitor2Point, Point &monitor1Point) {
 		cv::Rect *monitor1Geometry = Utils::getDebugMonitorGeometry();
 		cv::Rect *monitor2Geometry = Utils::getSecondaryMonitorGeometry();
-		
+
 		monitor1Point.x = (monitor2Point.x / monitor2Geometry->width) * (monitor1Geometry->width - 40) + monitor1Geometry->x;
 		monitor1Point.y = (monitor2Point.y / monitor2Geometry->height) * monitor1Geometry->height + monitor1Geometry->y;
 	}
-	
+
 	cv::Point mapFromCameraToDebugFrameCoordinates(cv::Point point) {
 		double factor  = Application::Components::videoInput->debugFrame.size().width / (double) Application::Components::videoInput->frame.size().width;
-		
+
 		return cv::Point(factor*point.x, factor*point.y);
 	}
 
@@ -62,7 +62,7 @@ namespace Utils {
 
 		return cv::Point(xFactor*point.x, yFactor*point.y);
 	}
-	
+
 	void boundToScreenArea(Point &estimate) {
 		cv::Rect *rect = Utils::getDebugMonitorGeometry();
 
@@ -88,7 +88,7 @@ namespace Utils {
 	void mapToVideoCoordinates(Point monitor2Point, double resolution, Point &videoPoint, bool reverseX) {
 		cv::Rect *monitor1Geometry = new cv::Rect(0, 0, 1280, 720);
 		cv::Rect *monitor2Geometry = Utils::getSecondaryMonitorGeometry();
-		
+
 		if (resolution == 480) {
 			monitor1Geometry->width = 640;
 			monitor1Geometry->height = 480;
@@ -110,7 +110,7 @@ namespace Utils {
 	void mapToNeuralNetworkCoordinates(Point point, Point &nnPoint) {
 		cv::Rect *monitor1Geometry = new cv::Rect(0, 0, 1, 1);
 		cv::Rect *monitor2Geometry = Utils::getSecondaryMonitorGeometry();
-		
+
 		nnPoint.x = ((point.x - monitor2Geometry->x) / monitor2Geometry->width) * monitor1Geometry->width + monitor1Geometry->x;
 		nnPoint.y = ((point.y - monitor2Geometry->y) / monitor2Geometry->height) * monitor1Geometry->height + monitor1Geometry->y;
 
@@ -121,7 +121,7 @@ namespace Utils {
 	void mapFromNeuralNetworkToScreenCoordinates(Point nnPoint, Point &point) {
 		cv::Rect *monitor1Geometry = Utils::getSecondaryMonitorGeometry();
 		cv::Rect *monitor2Geometry = new cv::Rect(0, 0, 1, 1);
-		
+
 		point.x = ((nnPoint.x - monitor2Geometry->x) / monitor2Geometry->width) * monitor1Geometry->width + monitor1Geometry->x;
 		point.y = ((nnPoint.y - monitor2Geometry->y) / monitor2Geometry->height) * monitor1Geometry->height + monitor1Geometry->y;
 
@@ -157,14 +157,14 @@ namespace Utils {
 		// Return the next serial number
 		return directory + "/" + baseFileName +  "_" + boost::lexical_cast<std::string>(maximumExistingNumber + 1) + ".txt";
 	}
-	
-	
+
+
 	std::vector<Point> readAndScalePoints(std::ifstream &in) {
 		cv::Rect *rect = getDebugMonitorGeometry();
-		
+
 		return scaled(loadPoints(in), rect->width, rect->height);
 	}
-	
+
 	std::vector<Point> loadPoints(std::ifstream &in) {
 		std::vector<Point> result;
 
@@ -180,7 +180,7 @@ namespace Utils {
 
 		return result;
 	}
-	
+
 	std::vector<Point> scaled(const std::vector<Point> &points, double x, double y) {
 		std::vector<Point> result;
 

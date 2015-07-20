@@ -5,14 +5,14 @@
 
 class TestWindow {
 public:
-	TestWindow();
+	TestWindow(const std::vector<Point> &points);
 	~TestWindow();
 	
 	// Main processing function
 	void process();
 	
 	// Calibration API functions (for future use)
-	void start(const std::vector<Point> &points);
+	void start();
 	void pointStart();
 	void pointEnd();
 	void abortTesting();

@@ -1,4 +1,4 @@
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 #include <fstream>
 #include <math.h>
 
@@ -28,7 +28,7 @@ static std::vector<Point> pointBetweenRects(const std::vector<Point> &points, cv
 
 PointTracker::PointTracker(const cv::Size &size):
 	_flags(CV_LKFLOW_INITIAL_GUESSES),
-	_grey(size, 1),
+	grey(size, 1),
 	_origGrey(size, 1),
 	_lastGrey(size, 1)
 {
@@ -62,6 +62,9 @@ int PointTracker::getClosestTracker(const Point &point) {
 }
 
 void PointTracker::process() {
+	if(Application::Signals::initiatePointClearingFrameNo == Application::Components::videoInput->frameCount) {
+		clearTrackers();
+	}
 	track();
 }
 
@@ -70,15 +73,15 @@ void PointTracker::track() {
 		assert(lastPoints.size() == currentPoints.size());
 		assert(origPoints.size() == currentPoints.size());
 		status.resize(currentPoints.size());
-		cvtColor(Application::Components::videoInput->frame, _grey, CV_BGR2GRAY);
+		cvtColor(Application::Components::videoInput->frame, grey, CV_BGR2GRAY);
 
 /*
 		if (Application::faceRectangle != NULL) {
-			Utils::normalizeGrayScaleImage_NEW(_grey(*Application::faceRectangle), 90, 160);
+			Utils::normalizeGrayScaleImage_NEW(grey(*Application::faceRectangle), 90, 160);
 		}
 */
 		// Apply median filter of 5x5
-		medianBlur(_grey, _grey, 5);
+		medianBlur(grey, grey, 5);
 
 		if (!currentPoints.empty()) {
 			// then calculate the position based on the original
@@ -91,7 +94,7 @@ void PointTracker::track() {
 				std::cout << "Point " << i+1 << ": " << currentPoints[i].x << ", " << currentPoints[i].y << std::endl;
 			}
 */
-			calcOpticalFlowPyrLK(_origGrey, _grey, 
+			calcOpticalFlowPyrLK(_origGrey, grey, 
 				origPoints, currentPoints, 
 				status, err, 
 				cv::Size(_winSize,_winSize), 
@@ -108,7 +111,7 @@ void PointTracker::track() {
 */
 		}
 
-		_grey.copyTo(_lastGrey);
+		grey.copyTo(_lastGrey);
 		lastPoints = currentPoints;
 	}
 	catch (std::exception &ex) {
@@ -127,16 +130,16 @@ void PointTracker::retrack() {
 		}
 
 		_flags = 0;
-		cvtColor(Application::Components::videoInput->frame, _grey, CV_BGR2GRAY);
+		cvtColor(Application::Components::videoInput->frame, grey, CV_BGR2GRAY);
 
 		// Apply median filter of 5x5
-		medianBlur(_grey, _grey, 5);
+		medianBlur(grey, grey, 5);
 
 		// then calculate the position based on the original
 		// template without any pyramids
 		std::vector<float> err;
 		
-		calcOpticalFlowPyrLK(_origGrey, _grey, 
+		calcOpticalFlowPyrLK(_origGrey, grey, 
 			origPoints, currentPoints, 
 			status, err, 
 			cv::Size(_winSize,_winSize), 
@@ -148,7 +151,7 @@ void PointTracker::retrack() {
 		_flags = CV_LKFLOW_INITIAL_GUESSES;
 		_flags |= CV_LKFLOW_PYR_A_READY;
 
-		_grey.copyTo(_lastGrey);
+		grey.copyTo(_lastGrey);
 
 		lastPoints = currentPoints;
 
@@ -218,7 +221,7 @@ void PointTracker::saveImage() {
 }
 
 void PointTracker::synchronizePoints() {
-	swap(_origGrey, _grey);
+	swap(_origGrey, grey);
 	origPoints = lastPoints = currentPoints;
 }
 

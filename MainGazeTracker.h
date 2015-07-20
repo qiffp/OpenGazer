@@ -42,10 +42,10 @@ private:
 	int _commandIndex;
 	
 	// Gui event variables
-	bool _initiateCalibration;
-	bool _initiateTesting;
-	bool _initiatePointSelection;
-	bool _initiatePointClearing;
+	//bool _initiateCalibration;
+	//bool _initiateTesting;
+	//bool _initiatePointSelection;
+	//bool _initiatePointClearing;
 	
 	int _headDistance;
 	QTimer _timer;

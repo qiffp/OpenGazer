@@ -1,4 +1,5 @@
 #include <sys/time.h>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include "Video.h"
 #include "HiResTimer.h"
@@ -52,6 +53,7 @@ VideoInput::VideoInput(std::string resolution):
 	flip(frame, frame, 1);
 
 	prepareDebugFrame();
+	cvtColor(frame, frameGrey, CV_BGR2GRAY);
 }
 
 VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy):
@@ -101,6 +103,7 @@ VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy)
 	}
 	
 	prepareDebugFrame();
+	cvtColor(frame, frameGrey, CV_BGR2GRAY);
 }
 
 VideoInput::~VideoInput() {
@@ -153,6 +156,7 @@ void VideoInput::updateFrame() {
 	}
 	
 	copyToDebugFrame();
+	cvtColor(frame, frameGrey, CV_BGR2GRAY);
 }
 
 void VideoInput::prepareDebugFrame() {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui.hpp>
 
 class VideoInput {
 private:
@@ -14,6 +14,7 @@ public:
 	int frameCount;
 	double frameRate;
 	cv::Mat frame;
+	cv::Mat frameGrey;
 	cv::Mat debugFrame;
 	cv::Size size;
 	bool captureFromVideo;

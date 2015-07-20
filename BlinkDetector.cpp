@@ -1,4 +1,5 @@
 #include <iostream>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include "BlinkDetector.h"
 #include "EyeExtractor.h"
