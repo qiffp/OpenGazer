@@ -4,7 +4,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
-GoogleGlassWindow::GoogleGlassWindow(): 
+GoogleGlassWindow::GoogleGlassWindow():
 	_window(1, false),
 	_window2(2, false)
 {
@@ -15,23 +15,23 @@ GoogleGlassWindow::GoogleGlassWindow():
 
 	//_interfaceStimuli.create(cv::Size(rect.get_width(), rect.get_height()), CV_8UC3);
 
-	_interfaceStimuli.create(cv::Size(_window.size().width(), 
-								_window.size().height()), 
+	_interfaceStimuli.create(cv::Size(_window.size().width(),
+								_window.size().height()),
 								CV_8UC3);
-	_interfaceStimuliWithOverlay.create(cv::Size(_window.size().width(), 
-								_window.size().height()), 
+	_interfaceStimuliWithOverlay.create(cv::Size(_window.size().width(),
+								_window.size().height()),
 								CV_8UC3);
 
 
-	_pictureResized.create(cv::Size(_window.size().width()/picturesX, 
-								 	 _window.size().height()/picturesY), 
+	_pictureResized.create(cv::Size(_window.size().width()/picturesX,
+								 	 _window.size().height()/picturesY),
 								 	 CV_8UC3);
 
 
-	_interfaceText.create(cv::Size(_window2.size().width(), 
-								_window2.size().height()), 
+	_interfaceText.create(cv::Size(_window2.size().width(),
+								_window2.size().height()),
 								CV_8UC3);
-	
+
 
 
 	//_window.show();
@@ -40,7 +40,7 @@ GoogleGlassWindow::GoogleGlassWindow():
 
 	// Load images and prepare the interface image
 	boost::filesystem::directory_iterator end_itr;
-	
+
 	boost::filesystem::path pictures_path("../Images_Google/Pictures");
 	boost::filesystem::directory_iterator picture_image(pictures_path);
 
@@ -51,12 +51,10 @@ GoogleGlassWindow::GoogleGlassWindow():
 
 			// Load the stimuli image (photos of places) and store in the base image
 			cv::Mat picture = cv::imread("../Images_Google/Pictures/"+ boost::lexical_cast<std::string>(imageIndex) + ".jpg", CV_LOAD_IMAGE_COLOR);
-			//std::cout << "Before resize 1" << std::endl;
 			cv::resize(picture, _pictureResized, _pictureResized.size());
-			//std::cout << "After resize 1" << std::endl;
-			cv::Rect roiRect = cv::Rect(_pictureResized.size().width * i, 
-										_pictureResized.size().height * j, 
-										_pictureResized.size().width, 
+			cv::Rect roiRect = cv::Rect(_pictureResized.size().width * i,
+										_pictureResized.size().height * j,
+										_pictureResized.size().width,
 										_pictureResized.size().height);
 
 			_pictureResized.copyTo(_interfaceStimuli(roiRect));
@@ -65,10 +63,8 @@ GoogleGlassWindow::GoogleGlassWindow():
 			// Load the corresponding text image
 			cv::Mat text = cv::imread("../Images_Google/Pictures/"+ boost::lexical_cast<std::string>(imageIndex) + "_text.jpg", CV_LOAD_IMAGE_COLOR);
 
-			//std::cout << "Before resize 2" << std::endl;
 			cv::resize(text, text, _interfaceText.size());
-			//std::cout << "After resize 2" << std::endl;
-
+			
 			_textImages.push_back(text);
 		}
 	}
@@ -125,7 +121,7 @@ void GoogleGlassWindow::process() {
 // Start testing procedure. Reset frame counter and save target point locations
 void GoogleGlassWindow::start() {
 	_window.show();
-	
+
 }
 
 // Aborts calibration

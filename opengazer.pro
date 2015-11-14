@@ -18,9 +18,15 @@ macx {
 	# Mac OS X linker parameters and include directories
 	QMAKE_LIBS += -L/opt/local/lib -lm -ldl -lgthread-2.0 -lfann -lboost_filesystem-mt -lboost_system-mt -lgsl -lgslcblas
 
-	QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.8
-	QMAKE_CFLAGS 	+= -stdlib=libc++
-	QMAKE_CXXFLAGS 	+= -stdlib=libc++
+	# NOTE: Depending on your Mac OS X / XCode version you might need to use the
+	# configuration that is commented out
+	#QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.8
+	#QMAKE_CFLAGS 	+= -stdlib=libc++
+	#QMAKE_CXXFLAGS 	+= -stdlib=libc++
+
+	QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.7
+	QMAKE_CFLAGS 	+= -stdlib=libstdc++
+	QMAKE_CXXFLAGS 	+= -stdlib=libstdc++
 }
 
 unix:!macx {

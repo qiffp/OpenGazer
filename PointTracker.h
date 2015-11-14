@@ -13,13 +13,13 @@ public:
 	cv::Mat grey;
 
 	PointTracker(const cv::Size &size);
-	
+
 	void clearTrackers();
 	void addTracker(const Point &point);
 	void updateTracker(int id, const Point &point);
 	void removeTracker(int id);
 	int getClosestTracker(const Point &point);
-	
+
 	void process();
 	void track();
 	void retrack();
@@ -31,14 +31,11 @@ public:
 	void draw();
 	void normalizeOriginalGrey();
 
-	void saveImage();
-
 private:
 	static const int _winSize = 11;
 	int _flags;
 	cv::Mat _origGrey, _lastGrey;
 	static const int _pyramidDepth = 2;
-	
+
 	void synchronizePoints();
 };
-

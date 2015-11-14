@@ -29,7 +29,7 @@ void AnchorPointSelector::choosePoints() {
 		Point eyebrows[2];
 
 		std::cout << "Detecting eye corners" << std::endl;
-		
+
 		if(!detectEyeCorners(Application::Components::videoInput->frame, Application::Components::videoInput->getResolution(), eyes)) {
 			std::cout << "EYE CORNERS NOT DETECTED" << std::endl;
 			return;
@@ -39,7 +39,7 @@ void AnchorPointSelector::choosePoints() {
 		cv::Rect noseRect = cv::Rect(eyes[0].x, eyes[0].y, fabs(eyes[0].x - eyes[1].x), fabs(eyes[0].x - eyes[1].x));
 		checkRectSize(Application::Components::videoInput->frame, &noseRect);
 		std::cout << "Nose rect: " << noseRect.x << ", " << noseRect.y << " - " << noseRect.width << ", " << noseRect.height << std::endl;
-		
+
 		if (!detectNose(Application::Components::videoInput->frame, Application::Components::videoInput->getResolution(), noseRect, nose)) {
 			std::cout << "NO NOSE" << std::endl;
 			return;
@@ -78,9 +78,6 @@ void AnchorPointSelector::choosePoints() {
 		std::cout << "MOUTH: " << mouth[0] << " + " << mouth[1] << std::endl;
 		std::cout << "EYEBROWS: " << eyebrows[0] << " + " << eyebrows[1] << std::endl;
 
-		// Save point selection image
-		Application::Components::pointTracker->saveImage();
-
 		// Calculate the area containing the face
 		//extractFaceRegionRectangle(Application::Components::pointTracker->getPoints(&PointTracker::lastPoints, true));
 		//Application::Components::pointTracker->normalizeOriginalGrey();
@@ -95,29 +92,29 @@ void AnchorPointSelector::choosePoints() {
 
 void AnchorPointSelector::loadCascades() {
 	if(/*!faceCascade.load("haarcascade_frontalface_alt.xml") || */
-		!eyeCascade.load("DetectorEyes.xml") || 
-		!noseCascade.load("DetectorNose2.xml") || 
+		!eyeCascade.load("DetectorEyes.xml") ||
+		!noseCascade.load("DetectorNose2.xml") ||
 		!mouthCascade.load("DetectorMouth.xml")) {
         std::cout << "ERROR: Could not load cascade classifiers!" << std::endl;
 		exit(1);
 	}
-	
+
 	std::cout << "Detection cascades loaded!" << std::endl;
 }
 
 bool AnchorPointSelector::detectLargestObject(cv::CascadeClassifier cascade, cv::Mat image, cv::Rect &largestObject, double scaleFactor, int minNeighbors, int flags, cv::Size minSize) {
 	std::vector<cv::Rect> results;
-	
+
 	largestObject.x = 0;
 	largestObject.y = 0;
 	largestObject.width = 0;
 	largestObject.height = 0;
-	
+
 	cascade.detectMultiScale(image, results, scaleFactor, minNeighbors, flags, minSize);
-	
-	
+
+
 	std::cout << "detectLargestObject(): results size: " << results.size() << std::endl;
-	
+
 	// Save the largest object
 	if (results.size() > 0) {
     	for(int i=0; i<results.size(); i++) {
@@ -130,7 +127,7 @@ bool AnchorPointSelector::detectLargestObject(cv::CascadeClassifier cascade, cv:
 
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -140,21 +137,21 @@ bool AnchorPointSelector::detectNose(cv::Mat image, double resolution, cv::Rect 
 	int minNeighbors = 3;
 	int flags = CV_HAAR_DO_CANNY_PRUNING;
 	cv::Size minSize(24, 20);
-	
+
 	if (resolution != 480) {
 		double factor = resolution/480;
 		minSize.width = round(factor*minSize.width);
 		minSize.height = round(factor*minSize.height);
 	}
-	
+
 	// Detect objects
 	if(!detectLargestObject(noseCascade, image(noseRect), largestObject, scaleFactor, minNeighbors, CV_HAAR_DO_CANNY_PRUNING, minSize)) {
 		return false;
 	}
-	
-	points[0] = Point(noseRect.x + largestObject.x + largestObject.width * 0.33, 
+
+	points[0] = Point(noseRect.x + largestObject.x + largestObject.width * 0.33,
 						noseRect.y + largestObject.y + largestObject.height * 0.6);
-	points[1] = Point(noseRect.x + largestObject.x + largestObject.width * 0.67, 
+	points[1] = Point(noseRect.x + largestObject.x + largestObject.width * 0.67,
 						noseRect.y + largestObject.y + largestObject.height * 0.6);
 
 	//cv::Rectangle(image, cv::Point(noseRect.x + nose->x, noseRect.y + nose->y), cv::Point(noseRect.x + nose->x + nose->width, noseRect.y + nose->y + nose->height), CV_RGB(0, 255, 0), 2, 8, 0);
@@ -170,21 +167,21 @@ bool AnchorPointSelector::detectMouth(cv::Mat image, double resolution, cv::Rect
 	int minNeighbors = 3;
 	int flags = 0;
 	cv::Size minSize(25, 15);
-	
+
 	if (resolution != 480) {
 		double factor = resolution/480;
 		minSize.width = round(factor*minSize.width);
 		minSize.height = round(factor*minSize.height);
 	}
-	
+
 	// Detect objects
 	if(!detectLargestObject(mouthCascade, image(mouthRect), largestObject, scaleFactor, minNeighbors, CV_HAAR_DO_CANNY_PRUNING, minSize)) {
 		return false;
 	}
 
-	points[0] = Point(mouthRect.x + largestObject.x + largestObject.width * 0.1, 
+	points[0] = Point(mouthRect.x + largestObject.x + largestObject.width * 0.1,
 						mouthRect.y + largestObject.y + largestObject.height * 0.4);
-	points[1] = Point(mouthRect.x + largestObject.x + largestObject.width * 0.9, 
+	points[1] = Point(mouthRect.x + largestObject.x + largestObject.width * 0.9,
 						mouthRect.y + largestObject.y + largestObject.height * 0.4);
 
 	//cv::Rectangle(image, cv::Point(mouthRect.x + largestObject.x, mouthRect.y + largestObject.y), cv::Point(mouthRect.x + largestObject.x + largestObject.width, mouthRect.y + largestObject.y + largestObject.height), CV_RGB(0, 255, 0), 2, 8, 0 );
@@ -200,13 +197,13 @@ bool AnchorPointSelector::detectEyeCorners(cv::Mat image, double resolution, Poi
 	int minNeighbors = 10;
 	int flags = CV_HAAR_DO_CANNY_PRUNING;
 	cv::Size minSize(64, 16);
-	
+
 	if (resolution != 480) {
 		double factor = resolution/480;
 		minSize.width = round(factor*minSize.width);
 		minSize.height = round(factor*minSize.height);
 	}
-	
+
 	// Detect objects
 	if(!detectLargestObject(eyeCascade, image, largestObject, scaleFactor, minNeighbors, CV_HAAR_DO_CANNY_PRUNING, minSize)) {
 		std::cout << "Detect largest object (for eyes) failed!!" << std::endl;
@@ -220,7 +217,7 @@ bool AnchorPointSelector::detectEyeCorners(cv::Mat image, double resolution, Poi
 	int cornerCount = 100;
 	cv::Mat eyeRegionImage(cv::Size(largestObject.width, largestObject.height), CV_8UC3);
 	cv::Mat eyeRegionImageGray(cv::Size(largestObject.width, largestObject.height), CV_8UC1);
-	
+
 	image(largestObject).copyTo(eyeRegionImage);
 	cv::cvtColor(eyeRegionImage, eyeRegionImageGray, CV_RGB2GRAY);
 
@@ -259,8 +256,8 @@ bool AnchorPointSelector::detectEyeCorners(cv::Mat image, double resolution, Poi
 
 	double xDiff = rightEyeCenterX - leftEyeCenterX;
 	double yDiff = rightEyeCenterY - leftEyeCenterY;
-	
-	double eyeSeparation = 0.33;	// = 0.29; 
+
+	double eyeSeparation = 0.33;	// = 0.29;
 	points[0] = Point(leftEyeCenterX - eyeSeparation * xDiff, leftEyeCenterY - eyeSeparation * yDiff);// + xDiff/40);
 	points[1] = Point(rightEyeCenterX + eyeSeparation * xDiff, rightEyeCenterY + eyeSeparation * yDiff);// + xDiff/40);
 
@@ -276,7 +273,7 @@ bool AnchorPointSelector::detectEyeCorners(cv::Mat image, double resolution, Poi
 
 void AnchorPointSelector::detectEyebrowCorners(cv::Mat image, double resolution, cv::Rect eyebrowRect, Point points[]) {
 	eyebrowRect.width = eyebrowRect.width / 2;
-	
+
 	cv::Mat eyebrowRegionImage(cv::Size(eyebrowRect.width, eyebrowRect.height), CV_8UC3);
 	cv::Mat eyebrowRegionImageGray(cv::Size(eyebrowRect.width, eyebrowRect.height), CV_8UC1);
 	cv::Mat eyebrowRegionImage2(cv::Size(eyebrowRect.width, eyebrowRect.height), CV_8UC3);
@@ -285,10 +282,10 @@ void AnchorPointSelector::detectEyebrowCorners(cv::Mat image, double resolution,
 	std::cout << "EYEBROW x, y = " << eyebrowRect.x << " - " << eyebrowRect.y << " width, height =" << eyebrowRect.width << " - " << eyebrowRect.height << std::endl;
 
 	image(eyebrowRect).copyTo(eyebrowRegionImage);
-	
+
 	cv::Rect eyebrowRect2 = cv::Rect(eyebrowRect.x + eyebrowRect.width, eyebrowRect.y, eyebrowRect.width, eyebrowRect.height);
 	image(eyebrowRect2).copyTo(eyebrowRegionImage2);
-	
+
 	//cvSaveImage("eyebrows.png", eyebrowRegionImage);
 	cv::cvtColor(eyebrowRegionImage, eyebrowRegionImageGray, CV_RGB2GRAY);
 	cv::cvtColor(eyebrowRegionImage2, eyebrowRegionImageGray2, CV_RGB2GRAY);
@@ -303,7 +300,7 @@ void AnchorPointSelector::detectEyebrowCorners(cv::Mat image, double resolution,
 
 std::vector<cv::Point2f>* AnchorPointSelector::detectCornersInGrayscale(cv::Mat eyeRegionImageGray, int cornerCount) {
 	std::vector<cv::Point2f> *corners = new std::vector<cv::Point2f>();
-	
+
 	double qualityLevel = 0.01;
 	double minDistance = 2;
 	int eigBlockSize = 3;

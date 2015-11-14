@@ -11,7 +11,7 @@ using Utils::operator<<;
 using Utils::operator>>;
 
 static Point pointBetweenRects(const Point &point, cv::Rect source, cv::Rect dest) {
-	return Point((point.x - source.x) * (double(dest.width) / source.width) + dest.x, 
+	return Point((point.x - source.x) * (double(dest.width) / source.width) + dest.x,
 		(point.y - source.y) * (double(dest.height) / source.height) + dest.y);
 }
 
@@ -94,12 +94,12 @@ void PointTracker::track() {
 				std::cout << "Point " << i+1 << ": " << currentPoints[i].x << ", " << currentPoints[i].y << std::endl;
 			}
 */
-			calcOpticalFlowPyrLK(_origGrey, grey, 
-				origPoints, currentPoints, 
-				status, err, 
-				cv::Size(_winSize,_winSize), 
-				_pyramidDepth * 3, 
-				cv::TermCriteria(CV_TERMCRIT_EPS, 20, 0.03), 
+			calcOpticalFlowPyrLK(_origGrey, grey,
+				origPoints, currentPoints,
+				status, err,
+				cv::Size(_winSize,_winSize),
+				_pyramidDepth * 3,
+				cv::TermCriteria(CV_TERMCRIT_EPS, 20, 0.03),
 				_flags);
 
 			_flags |= CV_LKFLOW_PYR_A_READY;
@@ -138,13 +138,13 @@ void PointTracker::retrack() {
 		// then calculate the position based on the original
 		// template without any pyramids
 		std::vector<float> err;
-		
-		calcOpticalFlowPyrLK(_origGrey, grey, 
-			origPoints, currentPoints, 
-			status, err, 
-			cv::Size(_winSize,_winSize), 
-			_pyramidDepth * 3, 
-			cv::TermCriteria(CV_TERMCRIT_EPS, 200, 0.0001), 
+
+		calcOpticalFlowPyrLK(_origGrey, grey,
+			origPoints, currentPoints,
+			status, err,
+			cv::Size(_winSize,_winSize),
+			_pyramidDepth * 3,
+			cv::TermCriteria(CV_TERMCRIT_EPS, 200, 0.0001),
 			_flags);
 		//}
 
@@ -194,7 +194,7 @@ std::vector<Point> PointTracker::getPoints(const std::vector<cv::Point2f> PointT
 
 void PointTracker::draw() {
 	cv::Mat image = Application::Components::videoInput->debugFrame;
-	
+
 	try {
 		for (int i = 0; i < (int)currentPoints.size(); i++) {
 			//std::cout << "Drawing point " << i+1 << "(" << currentPoints[i].x << ", " << currentPoints[i].y << ")" << std::endl;
@@ -216,13 +216,7 @@ void PointTracker::normalizeOriginalGrey() {
 	*/
 }
 
-void PointTracker::saveImage() {
-	cv::imwrite("point-selection-frame.png", _origGrey);
-}
-
 void PointTracker::synchronizePoints() {
 	swap(_origGrey, grey);
 	origPoints = lastPoints = currentPoints;
 }
-
-
