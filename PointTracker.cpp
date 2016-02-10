@@ -26,11 +26,11 @@ static std::vector<Point> pointBetweenRects(const std::vector<Point> &points, cv
 	return result;
 }
 
-PointTracker::PointTracker(const cv::Size &size):
+PointTracker::PointTracker():
 	_flags(CV_LKFLOW_INITIAL_GUESSES),
-	grey(size, 1),
-	_origGrey(size, 1),
-	_lastGrey(size, 1)
+	grey(Application::Components::videoInput->size, 1),
+	_origGrey(Application::Components::videoInput->size, 1),
+	_lastGrey(Application::Components::videoInput->size, 1)
 {
 }
 
@@ -39,26 +39,9 @@ void PointTracker::clearTrackers() {
 	synchronizePoints();
 }
 
-void PointTracker::addTracker(const Point &point) {
-	currentPoints.push_back(point.cvPoint32());
+void PointTracker::addTracker(const cv::Point2f &point) {
+	currentPoints.push_back(point);
 	synchronizePoints();
-}
-
-void PointTracker::updateTracker(int id, const Point &point) {
-	currentPoints[id] = point.cvPoint32();
-	synchronizePoints();
-}
-
-void PointTracker::removeTracker(int id) {
-	currentPoints.erase(currentPoints.begin() + id);
-	lastPoints.erase(lastPoints.begin() + id);
-	origPoints.erase(origPoints.begin() + id);
-}
-
-int PointTracker::getClosestTracker(const Point &point) {
-	std::vector<Point> points;
-	Utils::convert(currentPoints, points);
-	return point.closestPoint(points);
 }
 
 void PointTracker::process() {
@@ -73,6 +56,7 @@ void PointTracker::track() {
 		assert(lastPoints.size() == currentPoints.size());
 		assert(origPoints.size() == currentPoints.size());
 		status.resize(currentPoints.size());
+        
 		cvtColor(Application::Components::videoInput->frame, grey, CV_BGR2GRAY);
 
 /*
@@ -84,35 +68,34 @@ void PointTracker::track() {
 		medianBlur(grey, grey, 5);
 
 		if (!currentPoints.empty()) {
-			// then calculate the position based on the original
-			// template without any pyramids
-			std::vector<float> err;
+			if(Application::Settings::noTracking) {
+				for (int i = 0; i < currentPoints.size(); i++) {
+					currentPoints[i].x = origPoints[i].x;
+					currentPoints[i].y = origPoints[i].y;
 
-/*
-			std::cout << "BEFORE TRACKING:" << std::endl;
-			for(int i=0; i<currentPoints.size(); i++) {
-				std::cout << "Point " << i+1 << ": " << currentPoints[i].x << ", " << currentPoints[i].y << std::endl;
+					status[i] = 1;
+				}
 			}
-*/
-			calcOpticalFlowPyrLK(_origGrey, grey,
-				origPoints, currentPoints,
-				status, err,
-				cv::Size(_winSize,_winSize),
-				_pyramidDepth * 3,
-				cv::TermCriteria(CV_TERMCRIT_EPS, 20, 0.03),
-				_flags);
+			else {
+				// then calculate the position based on the original
+				// template without any pyramids
+				std::vector<float> err;
 
-			_flags |= CV_LKFLOW_PYR_A_READY;
-/*
-			std::cout << "AFTER TRACKING:" << std::endl;
-			for(int i=0; i<currentPoints.size(); i++) {
-				std::cout << "Point " << i+1 << ": " << currentPoints[i].x << ", " << currentPoints[i].y << std::endl;
+				calcOpticalFlowPyrLK(_origGrey, grey,
+					origPoints, currentPoints,
+					status, err,
+					cv::Size(_winSize,_winSize),
+					_pyramidDepth * 3,
+					cv::TermCriteria(CV_TERMCRIT_EPS, 20, 0.03),
+					_flags);
+
+				_flags |= CV_LKFLOW_PYR_A_READY;
 			}
-*/
 		}
 
 		grey.copyTo(_lastGrey);
 		lastPoints = currentPoints;
+        Application::Data::isTrackingSuccessful = (countActivePoints() >= 4);
 	}
 	catch (std::exception &ex) {
 		std::cout << ex.what() << std::endl;
@@ -155,10 +138,19 @@ void PointTracker::retrack() {
 
 		lastPoints = currentPoints;
 
-		std::cout << std::endl << "AFTER RETRACKING" << std::endl;
+        // Copy the required data to Application::Data variables
+        Application::Data::isTrackingSuccessful = (countActivePoints() >= 4);
+		for (int i = 0; i < (int)currentPoints.size(); i++) {
+			Application::Data::anchorPoints[i].x = currentPoints[i].x;
+			Application::Data::anchorPoints[i].y = currentPoints[i].y;
+		}
+        
+		/*
+        std::cout << std::endl << "AFTER RETRACKING" << std::endl;
 		for (int i = 0; i < (int)currentPoints.size(); i++) {
 			std::cout << "CP["<< i <<"]" << currentPoints[i].x << ", " << currentPoints[i].y << std::endl;
 		}
+        */
 	}
 	catch (std::exception &ex) {
 		std::cout << ex.what() << std::endl;
@@ -172,10 +164,6 @@ int PointTracker::countActivePoints() {
 
 bool PointTracker::areAllPointsActive() {
 	return count(status.begin(), status.end(), 0) == 0;
-}
-
-bool PointTracker::isTrackingSuccessful() {
-	return countActivePoints() >= 4;
 }
 
 int PointTracker::pointCount() {

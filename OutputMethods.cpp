@@ -25,8 +25,8 @@ MmapStore::~MmapStore() {
 }
 
 void MmapStore::store() {
-	_positionTable[0] = (int) ((Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x)/2) - 320;
-	_positionTable[1] = (int) ((Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y)/2) - 240;
+	_positionTable[0] = (int) Application::Data::gazePoints[0].x - 320;    // TODO CHANGE THESE FIXED RES.
+	_positionTable[1] = (int) Application::Data::gazePoints[0].y - 240;
 }
 
 StreamStore::StreamStore(std::ostream &stream):
@@ -37,8 +37,8 @@ StreamStore::StreamStore(std::ostream &stream):
 StreamStore::~StreamStore() {}
 
 void StreamStore::store() {
-	_stream << (int) ((Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x)/2) << " " 
-			<< (int) ((Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y)/2) << " -> " 
+	_stream << (int) Application::Data::gazePoints[0].x << " " 
+			<< (int) Application::Data::gazePoints[0].y << " -> " 
 			<< Application::Components::testWindow->getPointFrameNo() + 1 << std::endl;
 	_stream.flush();
 }
@@ -56,8 +56,8 @@ SocketStore::~SocketStore(void) {
 
 void SocketStore::store() {
 	std::ostringstream stream;
-	stream  << "x " << (int) ((Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x)/2) << std::endl 
-			<< "y " << (int) ((Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y)/2) << std::endl;
+	stream  << "x " << (int) Application::Data::gazePoints[0].x << std::endl 
+			<< "y " << (int) Application::Data::gazePoints[0].y << std::endl;
 	std::string str = stream.str();
 	sendto(_mySocket, str.c_str(), str.size(), 0, (sockaddr *)&_destAddr, sizeof(_destAddr));
 }

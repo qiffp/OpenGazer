@@ -1,9 +1,16 @@
 #include "Calibrator.h"
 #include "Application.h"
 
-Calibrator::Calibrator(const std::vector<Point> &points) {
+Calibrator::Calibrator(const std::vector<Point> &points) :
+    _window(2, false)	// Create this window in the second screen
+{
 	_points = points;
-	Application::Components::gazeTracker->clear();
+    
+    // Clear gaze tracker components' calibration info
+    for (int i=0; i<Application::config.gaze_components.size(); i++){
+        GazeTrackerComponent* comp = (GazeTrackerComponent*) Application::getComponent(Application::config.gaze_components[i]);
+        comp->clear();
+    }
 	
 	_frameNumber = -1;
 	needRecalibration = false;
@@ -159,7 +166,7 @@ void Calibrator::draw() {
 		Point activePoint = getActivePoint();
 		
 		cv::circle(Application::Components::videoInput->debugFrame, 
-				Utils::mapFromMainScreenToDebugFrameCoordinates(cv::Point(activePoint.x, activePoint.y)), 
+				Utils::mapFromSecondMonitorToDebugFrameCoordinates(cv::Point(activePoint.x, activePoint.y)), 
 				8, cv::Scalar(0, 0, 255), -1, 8, 0);
 	}
 }

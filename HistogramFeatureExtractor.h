@@ -1,5 +1,7 @@
 #pragma once
 #include "utils.h"
+#include "EyeExtractor.h"
+#include "Component.h"
 
 #define HORIZONTAL_BIN_SIZE 128
 #define VERTICAL_BIN_SIZE 64
@@ -8,13 +10,16 @@
 
 #define VECTOR_SIZE 10
 
-class HistogramFeatureExtractor {
+class HistogramFeatureExtractor: public Component {
 	cv::Mat _matches[VECTOR_SIZE];
 	cv::Mat _matchesSmoothed[VECTOR_SIZE];
 	cv::Mat _ellipseMask;
 	cv::Mat _irisTemplateDisk[VECTOR_SIZE];
 	cv::Mat _irisTemplate;
 	cv::Mat _gaussian2D[VECTOR_SIZE];
+
+	EyeExtractor *_groundTruth;
+    EyeExtractor *_eyeExtractor;
 
 public:
 	cv::Mat horizontalFeatures, verticalFeatures, horizontalFeaturesLeft, verticalFeaturesLeft;

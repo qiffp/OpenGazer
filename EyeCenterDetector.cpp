@@ -16,15 +16,19 @@ EyeCenterDetector::EyeCenterDetector() {}
 
 
 void EyeCenterDetector::process() {
-  if (!Application::Components::pointTracker->isTrackingSuccessful())
-    return;
+    if(_eyeExtractor == NULL) {
+        _eyeExtractor = (EyeExtractor*) Application::getComponent("EyeExtractor");
+    }
 
-	this->eyeCenter = findEyeCenter(*Application::Components::eyeExtractor->eyeGrey);
-	this->eyeCenterLeft = findEyeCenter(*Application::Components::eyeExtractor->eyeGreyLeft);
+    if (!Application::Data::isTrackingSuccessful)
+        return;
+
+    this->eyeCenter = findEyeCenter(_eyeExtractor->eyeGrey);
+    this->eyeCenterLeft = findEyeCenter(_eyeExtractor->eyeGreyLeft);
 }
 
 void EyeCenterDetector::draw() {
-	if (!Application::Components::pointTracker->isTrackingSuccessful())
+	if (!Application::Data::isTrackingSuccessful)
 		return;
 	
 	cv::Mat image = Application::Components::videoInput->debugFrame;

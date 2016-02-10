@@ -2,20 +2,22 @@
 
 #include "BlinkDetector.h"
 #include "FeatureDetector.h"
+#include "Component.h"
+#include "PointTracker.h"
 
-class EyeExtractor {
+class EyeExtractor: public Component {
 public:
 	static const int eyeDX;
 	static const int eyeDY;
 	static const cv::Size eyeSize;
-	
+
 	boost::scoped_ptr<FeatureDetector> averageEye;
 	boost::scoped_ptr<FeatureDetector> averageEyeLeft;
 
-	boost::scoped_ptr<cv::Mat> eyeGrey, eyeFloat, eyeImage;
-	boost::scoped_ptr<cv::Mat> eyeGreyLeft, eyeFloatLeft, eyeImageLeft;
-	
-	EyeExtractor();
+	cv::Mat eyeGrey, eyeFloat, eyeImage;
+	cv::Mat eyeGreyLeft, eyeFloatLeft, eyeImageLeft;
+
+	EyeExtractor(bool fromGroundTruth=false);
 	~EyeExtractor();
 	void process();
 	bool isBlinking();
@@ -27,13 +29,14 @@ public:
 	void pointEnd();
 	void abortCalibration();
 	void calibrationEnded();
-	
+
 private:
 	BlinkDetector _blinkDetector;
 	BlinkDetector _blinkDetectorLeft;
 	bool _isBlinking;
+	bool _fromGroundTruth;
+    PointTracker *_pointTracker = NULL;
 
 	void extractEye(const cv::Mat originalImage);
 	void extractEyeLeft(const cv::Mat originalImage);
 };
-

@@ -26,7 +26,7 @@ EyeExtractorSegmentationGroundTruth::EyeExtractorSegmentationGroundTruth():
 EyeExtractorSegmentationGroundTruth::~EyeExtractorSegmentationGroundTruth() {}
 
 void EyeExtractorSegmentationGroundTruth::process() {
-	if (Application::Components::pointTracker->isTrackingSuccessful()) {
+	if (Application::Data::isTrackingSuccessful) {
 		// Extract eye images using point tracker results
 
 		char file_detect_eye[50];
@@ -82,10 +82,10 @@ bool EyeExtractorSegmentationGroundTruth::isBlinking() {
 void EyeExtractorSegmentationGroundTruth::extractEye(cv::Mat originalImage) {
 	//cv::imwrite("aaa_segmentation_frame.png", originalImage);
 
-	double x0 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint1].x;
-	double y0 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint1].y;
-	double x1 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2].x;
-	double y1 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2].y;
+	double x0 = Application::Data::anchorPoints[PointTracker::eyePoint1].x;
+	double y0 = Application::Data::anchorPoints[PointTracker::eyePoint1].y;
+	double x1 = Application::Data::anchorPoints[PointTracker::eyePoint2].x;
+	double y1 = Application::Data::anchorPoints[PointTracker::eyePoint2].y;
 
 	//std::cout << "Points: " << x0 << ", " << y0 << " and " << x1 << ", " << y1 << std::endl;
 	// Move the tracked points a little towards center (using weighted sum)
@@ -149,10 +149,10 @@ void EyeExtractorSegmentationGroundTruth::extractEye(cv::Mat originalImage) {
 }
 
 void EyeExtractorSegmentationGroundTruth::extractEyeLeft(cv::Mat originalImage) {
-	double x0 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2].x;
-	double y0 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2].y;
-	double x1 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint1].x;
-	double y1 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint1].y;
+	double x0 = Application::Data::anchorPoints[PointTracker::eyePoint2].x;
+	double y0 = Application::Data::anchorPoints[PointTracker::eyePoint2].y;
+	double x1 = Application::Data::anchorPoints[PointTracker::eyePoint1].x;
+	double y1 = Application::Data::anchorPoints[PointTracker::eyePoint1].y;
 
 	// Move the tracked points a little towards center (using weighted sum)
 	// so that the extracted image contains more the important area (iris & sclera)
@@ -211,7 +211,7 @@ void EyeExtractorSegmentationGroundTruth::extractEyeLeft(cv::Mat originalImage) 
 }
 
 void EyeExtractorSegmentationGroundTruth::draw() {
-	if (!Application::Components::pointTracker->isTrackingSuccessful())
+	if (!Application::Data::isTrackingSuccessful)
 		return;
 	
 	cv::Mat image = Application::Components::videoInput->debugFrame;

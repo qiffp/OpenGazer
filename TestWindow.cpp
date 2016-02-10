@@ -2,8 +2,8 @@
 #include "Application.h"
 
 TestWindow::TestWindow(const std::vector<Point> &points) : 
-	_window(1, false)	// Create this window in the debug screen
- {
+	_window(2, false)	// Create this window in the second screen
+{
 	_points = points;
 	_frameNumber = -1;
 	
@@ -145,7 +145,7 @@ void TestWindow::draw() {
 		Point activePoint = getActivePoint();
 		
 		cv::circle(Application::Components::videoInput->debugFrame, 
-				Utils::mapFromMainScreenToDebugFrameCoordinates(cv::Point(activePoint.x, activePoint.y)), 
+				Utils::mapFromSecondMonitorToDebugFrameCoordinates(cv::Point(activePoint.x, activePoint.y)), 
 				8, cv::Scalar(0, 0, 255), -1, 8, 0);
 	}
 }

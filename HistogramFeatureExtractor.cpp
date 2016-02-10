@@ -1,5 +1,4 @@
 #include "HistogramFeatureExtractor.h"
-#include "EyeExtractor.h"
 #include "Application.h"
 #include <opencv2/highgui/highgui.hpp>
 #include <math.h>
@@ -7,8 +6,8 @@
 
 HistogramFeatureExtractor::HistogramFeatureExtractor() {
 	_ellipseMask = cv::imread("./elipse.jpg", CV_LOAD_IMAGE_GRAYSCALE);
-
-	int sizeImageDisk = 40;	// TODO ONUR Check disk size 5? 10?
+    
+    int sizeImageDisk = 30;	// TODO ONUR Check disk size 5? 10? lastly 30?
 	for (int j=0; j<VECTOR_SIZE; j++){
 		createTemplates(j, sizeImageDisk+j*2);
 
@@ -27,14 +26,23 @@ HistogramFeatureExtractor::HistogramFeatureExtractor() {
 	this->horizontalFeaturesLeft.create(cv::Size(HORIZONTAL_BIN_SIZE, 1), CV_32SC1);
 	this->verticalFeatures.create(cv::Size(1, VERTICAL_BIN_SIZE), CV_32SC1);
 	this->verticalFeaturesLeft.create(cv::Size(1, VERTICAL_BIN_SIZE), CV_32SC1);
+
+	_groundTruth = new EyeExtractor(true);
 }
 
 HistogramFeatureExtractor::~HistogramFeatureExtractor() {
 }
 
 void HistogramFeatureExtractor::process() {
-
-	if (Application::Components::pointTracker->isTrackingSuccessful()) {
+    if(_eyeExtractor == NULL) {
+        _eyeExtractor = (EyeExtractor*) Application::getComponent("EyeExtractor");
+    }
+    
+	if (Application::Data::isTrackingSuccessful) {
+		// If using ground truth, first call it's process() to prepare the segmentation GT
+		if(Application::Settings::useGroundTruth) {
+			_groundTruth->process();
+		}
 		// Extract the histogram features (iris detection + segmentation + projection)
     	extractFeatures();
     }
@@ -49,20 +57,19 @@ void HistogramFeatureExtractor::extractFeatures(){
 
 	// Repeat for right and left eyes
 	for(int side = 0; side < 2; side++) {
-		cv::Mat *eyeGrey 		= (side == 0) ? Application::Components::eyeExtractor->eyeGrey.get() 	: Application::Components::eyeExtractor->eyeGreyLeft.get();
-		cv::Mat *eyeImage 	= (side == 0) ? Application::Components::eyeExtractor->eyeImage.get() : Application::Components::eyeExtractor->eyeImageLeft.get();
-
-		// TODO ONUR Overwrite the eyeGrey and eyeImage pointers if reading ground truth from images
+		cv::Mat *eyeGrey 		= (side == 0) ? &_eyeExtractor->eyeGrey 	: &_eyeExtractor->eyeGreyLeft;
 
 		cv::Mat &horizontalFeatures 	= (side == 0) ? this->horizontalFeatures 	: this->horizontalFeaturesLeft;
 		cv::Mat &verticalFeatures 		= (side == 0) ? this->verticalFeatures 		: this->verticalFeaturesLeft;
 
 		cv::Mat *wholeSegmentation			= (side == 0) ? &this->wholeSegmentation	: &this->wholeSegmentationLeft;
-		cv::Mat *eyeSegmentation				= (side == 0) ? &this->eyeSegmentation		: &this->eyeSegmentationLeft;
+		cv::Mat *eyeSegmentation			= (side == 0) ? &this->eyeSegmentation		: &this->eyeSegmentationLeft;
+
+		cv::Mat *gtImage					= (side == 0) ? &_groundTruth->eyeImage: &_groundTruth->eyeImageLeft;
 
 		// Copy the masked region to the temporary image and fill the rest with grey
-		maskedGreyImage.setTo(cv::Scalar(100,100,100));
-		eyeGrey->copyTo(maskedGreyImage, _ellipseMask);
+        maskedGreyImage.setTo(cv::Scalar(100,100,100));
+        eyeGrey->copyTo(maskedGreyImage, _ellipseMask);
 
 		int j;
 		int comparisonMethod = CV_TM_CCOEFF_NORMED;
@@ -93,12 +100,23 @@ void HistogramFeatureExtractor::extractFeatures(){
 		}
 
 		// Apply segmentation on the whole eye image
-		calculateSegmentation(maskedGreyImage, *wholeSegmentation);
+		if(Application::Settings::useGroundTruth) {
+			calculateSegmentation(*gtImage, *wholeSegmentation);
+		}
+		else {
+			calculateSegmentation(maskedGreyImage, *wholeSegmentation);
+		}
 
 		// Get the bounding box for the best iris match, and copy the segmentation corresponding to that region into eyeSegmentation
-		cv::Rect roi = cv::Rect(maxLoc[bestDiskSize].x, maxLoc[bestDiskSize].y, _irisTemplateDisk[bestDiskSize].size().width, _irisTemplateDisk[bestDiskSize].size().height);
-		eyeSegmentation->setTo(cv::Scalar(0));
-		(*wholeSegmentation)(roi).copyTo((*eyeSegmentation)(roi));
+		if(Application::Settings::useGroundTruth) {
+			(*wholeSegmentation).copyTo(*eyeSegmentation);
+		}
+		else {
+			cv::Rect roi = cv::Rect(maxLoc[bestDiskSize].x, maxLoc[bestDiskSize].y, _irisTemplateDisk[bestDiskSize].size().width, _irisTemplateDisk[bestDiskSize].size().height);
+			eyeSegmentation->setTo(cv::Scalar(0));
+            
+            (*wholeSegmentation)(roi).copyTo((*eyeSegmentation)(roi));
+		}
 
 		// Extract histogram features from eye segmentation
 		calculateHistogram(*eyeSegmentation, horizontalFeatures, verticalFeatures);
@@ -106,10 +124,18 @@ void HistogramFeatureExtractor::extractFeatures(){
 
 }
 
-void HistogramFeatureExtractor::calculateSegmentation(cv::Mat Temporary, cv::Mat result) {
+void HistogramFeatureExtractor::calculateSegmentation(cv::Mat image, cv::Mat result) {
+	if(Application::Settings::useGroundTruth) {
+		// specify the range of colours that you want to include, you can play with the borders here
+		cv::Scalar lowerb = cv::Scalar(0,150,0);
+		cv::Scalar upperb = cv::Scalar(30,255,30);
 
-	threshold(Temporary, result, 80, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);	// TODO ONUR Check: 0-255 limits
-	bitwise_not(result, result);
+		cv::inRange(image, lowerb, upperb, result); // if the frame has any orange pixel, this will be painted in the mask as white
+	}
+	else {
+		threshold(image, result, 80, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);	// TODO ONUR Check: 0-255 limits
+		bitwise_not(result, result);
+	}
 }
 
 void HistogramFeatureExtractor::calculateHistogram(	cv::Mat bwIris,
@@ -163,7 +189,7 @@ void HistogramFeatureExtractor::createGaussians(int index) {
 
 // Drawing on debug window
 void HistogramFeatureExtractor::draw() {
-	if (!Application::Components::pointTracker->isTrackingSuccessful())
+	if (!Application::Data::isTrackingSuccessful)
 		return;
 
 	cv::Mat image = Application::Components::videoInput->debugFrame;
@@ -184,10 +210,10 @@ void HistogramFeatureExtractor::draw() {
 		cv::Mat horizontalImage 	= image(cv::Rect(baseX + side*140, baseY + stepY * 2, eyeDX, eyeDY));
 		cv::Mat verticalImage 		= image(cv::Rect(baseX + side*140, baseY + stepY * 3, eyeDX, eyeDY));
 
-		cv::Mat &eyeImage											= (side == 0) ? *Application::Components::eyeExtractor->eyeImage	:	*Application::Components::eyeExtractor->eyeImageLeft;
-		cv::Mat &eyeSegmentation							= (side == 0) ? this->eyeSegmentation				: this->eyeSegmentationLeft;
-		cv::Mat &horizontalFeatures 	= (side == 0) ? this->horizontalFeatures 		: this->horizontalFeaturesLeft;
-		cv::Mat &verticalFeatures 		= (side == 0) ? this->verticalFeatures 			: this->verticalFeaturesLeft;
+		cv::Mat &eyeImage				= (side == 0) ? _eyeExtractor->eyeImage		: _eyeExtractor->eyeImageLeft;
+		cv::Mat &eyeSegmentation		= (side == 0) ? this->eyeSegmentation		: this->eyeSegmentationLeft;
+		cv::Mat &horizontalFeatures 	= (side == 0) ? this->horizontalFeatures 	: this->horizontalFeaturesLeft;
+		cv::Mat &verticalFeatures 		= (side == 0) ? this->verticalFeatures 		: this->verticalFeaturesLeft;
 
 		// Draw the segmentations
 		eyeImage.copyTo(segmentationImage);

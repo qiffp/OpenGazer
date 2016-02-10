@@ -7,11 +7,18 @@ namespace Application {
 	int testDwelltimeParameter = 20;
 	int sleepParameter = 0;
 	std::ofstream resultsOutputFile;
+    
+    Configuration config;
 
 	namespace Settings {
 		bool videoOverlays = false;
 		bool recording = false;
+		bool noWindows = false;
+		bool noTracking = false;
+		bool useGroundTruth = false;
 	}
+    
+    std::map<std::string, Component*> components;
 
 	namespace Components {
 		// Video input and output
@@ -21,31 +28,15 @@ namespace Application {
 		// The main class containing the processing loop
 		MainGazeTracker *mainTracker;
 
-		// Point selection component for initialization
-		AnchorPointSelector *anchorPointSelector;
-
-		// Preprocessing (before gaze estimation) components
-		// that prepare the necessary data used in estimation
-		PointTracker *pointTracker;
-		PointTrackerWithTemplate *pointTrackerWithTemplate;
-		HeadTracker *headTracker;
-		HeadCompensation *headCompensation;
-		EyeExtractor *eyeExtractor;
-		EyeExtractorSegmentationGroundTruth *eyeExtractorSegmentationGroundTruth;
-		EyeCenterDetector *eyeCenterDetector;
-		HistogramFeatureExtractor *histFeatureExtractor;
-
-		// Gaze tracker components
-		GazeTracker *gazeTracker;
-		GazeTrackerHistogramFeatures *gazeTrackerHistogramFeatures;
-
 		// Other components mainly taking care of calibration/test flow and display
 		Calibrator *calibrator;
 		DebugWindow *debugWindow;
 		TestWindow *testWindow;
-		GoogleGlassWindow *googleGlassWindow;
-		FrogGame *frogGame;
 	}
+    
+    Component* getComponent(std::string name) {
+        return Components::mainTracker->getComponent(name);
+    }
 
 	namespace Signals {
 		int initiateCalibrationFrameNo = -1;
@@ -57,17 +48,12 @@ namespace Application {
 	namespace Data {
 		std::vector<Point> calibrationTargets;
 
-		Point gazePointGP;
-		Point gazePointGPLeft;
-
-		// Outputs for Histogram Features Gaussian Process estimator
-		Point gazePointHistFeaturesGP;
-		Point gazePointHistFeaturesGPLeft;
-
-		Point gazePointNN;
-		Point gazePointNNLeft;
-
-
+		// Outputs for all gaze estimators
+        std::vector<Point> gazePoints;
+        
+        // Positions of facial anchor points
+        std::vector<cv::Point2f> anchorPoints;
+        bool isTrackingSuccessful;
 	}
 
 	std::vector<boost::shared_ptr<AbstractStore> > getStores() {

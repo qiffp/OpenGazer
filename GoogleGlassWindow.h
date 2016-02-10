@@ -2,11 +2,12 @@
 
 #include "ImageWindow.h"
 #include "Point.h"
+#include "Component.h"
 
 #define picturesX 3
 #define picturesY 3
 
-class GoogleGlassWindow {
+class GoogleGlassWindow: public Component {
 public:
 	GoogleGlassWindow();
 	~GoogleGlassWindow();

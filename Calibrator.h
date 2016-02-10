@@ -2,8 +2,9 @@
 
 #include "ImageWindow.h"
 #include "Point.h"
+#include "Component.h"
 
-class Calibrator {
+class Calibrator: public Component {
 public:
 	Calibrator(const std::vector<Point> &points);
 	~Calibrator();

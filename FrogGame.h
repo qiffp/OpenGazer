@@ -6,8 +6,9 @@
 
 #include "GazeTracker.h"
 #include "ImageWindow.h"
+#include "Component.h"
 
-class FrogGame {
+class FrogGame: public Component {
 public:
 	FrogGame();
 	~FrogGame();

@@ -61,33 +61,6 @@ namespace Utils {
 
 	#define debugTee(x) teeFunction(x, #x ": ")
 
-	template <class T> std::vector<T> loadVector(CvFileStorage *in, CvFileNode *node) {
-		CvSeq *seq = node->data.seq;
-		CvSeqReader reader;
-
-		cvStartReadSeq(seq, &reader, 0);
-		std::vector<T> result(seq->total);
-
-		for (int i = 0; i < seq->total; i++) {
-			CvFileNode *item = (CvFileNode *)reader.ptr;
-			result[i].load(in, item);
-			CV_NEXT_SEQ_ELEM(seq->elem_size, reader);
-		}
-
-		return result;
-	}
-
-	template <class From, class To> void convert(const From &from, To &to) {
-		to = from;
-	}
-
-	template <class From, class To> void convert(const std::vector<From> &from, std::vector<To> &to) {
-		to.resize(from.size());
-		for (int i = 0; i < (int)from.size(); i++) {
-			convert(from[i], to[i]);
-		}
-	}
-
 	class ConstancyDetector {
 	public:
 		ConstancyDetector(int maxCounter):
@@ -146,12 +119,12 @@ namespace Utils {
 	void releaseImage(cv::Mat *image);
 
 	cv::Rect* getMonitorGeometryByIndex(int screenIndex);
-	cv::Rect* getSecondaryMonitorGeometry();
-	cv::Rect* getDebugMonitorGeometry();
+	cv::Rect* getSecondMonitorGeometry();
+	cv::Rect* getFirstMonitorGeometry();
 	
 	void mapToFirstMonitorCoordinates(Point monitor2Point, Point &monitor1Point);
 	cv::Point mapFromCameraToDebugFrameCoordinates(cv::Point point);
-	cv::Point mapFromMainScreenToDebugFrameCoordinates(cv::Point point);
+	cv::Point mapFromSecondMonitorToDebugFrameCoordinates(cv::Point point);
 	
 	void mapToVideoCoordinates(Point monitor2Point, double resolution, Point &videoPoint, bool reverseX=true);
 	void mapToNeuralNetworkCoordinates(Point point, Point &nnPoint);
@@ -160,6 +133,8 @@ namespace Utils {
 	void boundToScreenArea(Point &estimate);
 	
 	std::string getUniqueFileName(std::string directory, std::string baseFileName);
+	std::string getParameter(std::string name);
+	double getParameterAsDouble(std::string name, double defaultValue=0.0);
 	
 	// Functions for reading calibration and testing targets
 	std::vector<Point> readAndScalePoints(std::ifstream &in);

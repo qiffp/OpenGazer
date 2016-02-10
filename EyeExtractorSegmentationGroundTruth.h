@@ -2,8 +2,9 @@
 
 #include "BlinkDetector.h"
 #include "FeatureDetector.h"
+#include "Component.h"
 
-class EyeExtractorSegmentationGroundTruth {
+class EyeExtractorSegmentationGroundTruth: public Component {
 public:
 	static const int eyeDX;
 	static const int eyeDY;

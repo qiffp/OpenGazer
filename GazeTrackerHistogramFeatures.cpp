@@ -1,8 +1,7 @@
 #include <fstream>
+#include <boost/lexical_cast.hpp>
 
 #include "GazeTrackerHistogramFeatures.h"
-#include "HistogramFeatureExtractor.h"
-#include "EyeExtractor.h"
 #include "Point.h"
 #include "mir.h"
 #include "Application.h"
@@ -19,37 +18,42 @@ GazeTrackerHistogramFeatures::GazeTrackerHistogramFeatures()
 	_currentSample.create(cv::Size(1, FEATURE_DIM), CV_32FC1);
 	_currentSampleLeft.create(cv::Size(1, FEATURE_DIM), CV_32FC1);
 
-	Application::Data::gazePointHistFeaturesGP.x = 0;
-	Application::Data::gazePointHistFeaturesGP.y = 0;
-	Application::Data::gazePointHistFeaturesGPLeft.x = 0;
-	Application::Data::gazePointHistFeaturesGPLeft.y = 0;
+	gazePoint.x = 0;
+	gazePoint.y = 0;
 }
 
 void GazeTrackerHistogramFeatures::process() {
-	if (!Application::Components::pointTracker->isTrackingSuccessful()) {
+    if(_histFeatureExtractor == NULL) {
+        _histFeatureExtractor = (HistogramFeatureExtractor*) Application::getComponent("HistogramFeatureExtractor");
+    }
+    if(_eyeExtractor == NULL) {
+        _eyeExtractor = (EyeExtractor*) Application::getComponent("EyeExtractor");
+    }
+    
+	if (!Application::Data::isTrackingSuccessful) {
 		return;
 	}
-
+    
 	// If recalibration is necessary (there is a new target), recalibrate the Gaussian Processes
 	if(Application::Components::calibrator->needRecalibration) {
 		addExemplar();
 	}
 
 	// Combine the current horizontal and vertical features to come up with the final features
-	cv::Mat horizontalTransposed = Application::Components::histFeatureExtractor->horizontalFeatures.t();
+	cv::Mat horizontalTransposed = _histFeatureExtractor->horizontalFeatures.t();
 	horizontalTransposed.copyTo(_currentSample(cv::Rect(0, 0, 1, HORIZONTAL_BIN_SIZE)));
 
-	Application::Components::histFeatureExtractor->verticalFeatures.copyTo(_currentSample(cv::Rect(0, HORIZONTAL_BIN_SIZE, 1, VERTICAL_BIN_SIZE)));
+	_histFeatureExtractor->verticalFeatures.copyTo(_currentSample(cv::Rect(0, HORIZONTAL_BIN_SIZE, 1, VERTICAL_BIN_SIZE)));
 
-	horizontalTransposed = Application::Components::histFeatureExtractor->horizontalFeaturesLeft.t();
+	horizontalTransposed = _histFeatureExtractor->horizontalFeaturesLeft.t();
 	horizontalTransposed.copyTo(_currentSampleLeft(cv::Rect(0, 0, 1, HORIZONTAL_BIN_SIZE)));
 
-	Application::Components::histFeatureExtractor->verticalFeaturesLeft.copyTo(_currentSampleLeft(cv::Rect(0, HORIZONTAL_BIN_SIZE, 1, VERTICAL_BIN_SIZE)));
+	_histFeatureExtractor->verticalFeaturesLeft.copyTo(_currentSampleLeft(cv::Rect(0, HORIZONTAL_BIN_SIZE, 1, VERTICAL_BIN_SIZE)));
 
 	// If active and there is a usable frame
 	if(Application::Components::calibrator->isActive()
 		&& Application::Components::calibrator->getPointFrameNo() >= 11
-		&& !Application::Components::eyeExtractor->isBlinking()) {
+		&& !_eyeExtractor->isBlinking()) {
 			// Copy the current histogram feature sample to the corresponding row in the accumulation matrices (currentTargetSamples)
 			_currentSample.copyTo(_currentTargetSamples(cv::Rect(_currentTargetSampleCount, 0, 1, FEATURE_DIM)));
 			_currentSampleLeft.copyTo(_currentTargetSamplesLeft(cv::Rect(_currentTargetSampleCount, 0, 1, FEATURE_DIM)));
@@ -63,17 +67,17 @@ void GazeTrackerHistogramFeatures::process() {
 }
 
 void GazeTrackerHistogramFeatures::draw() {
-	if (!Application::Components::pointTracker->isTrackingSuccessful())
+	if (!Application::Data::isTrackingSuccessful)
 		return;
 
 	cv::Mat image = Application::Components::videoInput->debugFrame;
 
 	// If not blinking, draw the estimations to debug window
-	if (isActive() && !Application::Components::eyeExtractor->isBlinking()) {
-		Point estimation(0, 0);
+	if (isActive() && !_eyeExtractor->isBlinking()) {
+		cv::Point estimation(gazePoint.x, gazePoint.y);
 
 		cv::circle(image,
-			Utils::mapFromMainScreenToDebugFrameCoordinates(cv::Point((Application::Data::gazePointHistFeaturesGP.x + Application::Data::gazePointHistFeaturesGPLeft.x) / 2, (Application::Data::gazePointHistFeaturesGP.y + Application::Data::gazePointHistFeaturesGPLeft.y) / 2)),
+			Utils::mapFromSecondMonitorToDebugFrameCoordinates(estimation),
 			8, cv::Scalar(255, 0, 0), -1, 8, 0);
 	}
 }
@@ -81,6 +85,17 @@ void GazeTrackerHistogramFeatures::draw() {
 // Decides if the tracker is active
 bool GazeTrackerHistogramFeatures::isActive() {
 	return _histX.get() && _histY.get();
+}
+
+void GazeTrackerHistogramFeatures::clear() {
+    // Clear previous calibration information
+    _exemplars.clear();
+    _exemplarsLeft.clear();
+    
+    _histX.reset(NULL);
+    _histY.reset(NULL);
+    _histXLeft.reset(NULL);
+    _histYLeft.reset(NULL);
 }
 
 // Adds the exemplar for the current calibration target into the exemplars vectors
@@ -92,6 +107,8 @@ void GazeTrackerHistogramFeatures::addExemplar() {
 	// Calculate the average of collected samples for this target and store in exemplar
 	cv::reduce(_currentTargetSamples(cv::Rect(0, 0, _currentTargetSampleCount, FEATURE_DIM)), 		*exemplar, 		1, CV_REDUCE_AVG, CV_32FC1);
 	cv::reduce(_currentTargetSamplesLeft(cv::Rect(0, 0, _currentTargetSampleCount, FEATURE_DIM)), 	*exemplarLeft,	1, CV_REDUCE_AVG, CV_32FC1);
+
+	//cv::imwrite("aaa_histFeatures_" + boost::lexical_cast<std::string>(Application::Components::calibrator->getPointNumber()) + "_exemplar.png", *exemplar);
 
 	// Add the exemplar to the targets vector
 	_exemplars.push_back(*exemplar);
@@ -106,16 +123,12 @@ void GazeTrackerHistogramFeatures::addExemplar() {
 // Uses the current sample to calculate the gaze estimation
 void GazeTrackerHistogramFeatures::updateEstimations() {
 	if (isActive()) {
-		// Update estimations for right eye
-		Application::Data::gazePointHistFeaturesGP.x = _histX->getmean(_currentSample);
-		Application::Data::gazePointHistFeaturesGP.y = _histY->getmean(_currentSample);
+		// Update estimations
+		gazePoint.x = (_histX->getmean(_currentSample) + _histXLeft->getmean(_currentSampleLeft)) / 2;
+		gazePoint.y = (_histY->getmean(_currentSample) + _histYLeft->getmean(_currentSampleLeft)) / 2;
 
-		// Repeat for left eye
-		Application::Data::gazePointHistFeaturesGPLeft.x = _histXLeft->getmean(_currentSampleLeft);
-		Application::Data::gazePointHistFeaturesGPLeft.y = _histYLeft->getmean(_currentSampleLeft);
-
-		Utils::boundToScreenArea(Application::Data::gazePointHistFeaturesGP);
-		Utils::boundToScreenArea(Application::Data::gazePointHistFeaturesGPLeft);
+        // Make sure estimation stays in the screen area
+		Utils::boundToScreenArea(gazePoint);
 	}
 }
 
@@ -148,12 +161,14 @@ void GazeTrackerHistogramFeatures::clearTargetSamples() {
 }
 
 double GazeTrackerHistogramFeatures::covarianceFunctionSE(const cv::Mat &histogram1, const cv::Mat &histogram2) {
-	const double sigma = 125.0; // 1.0;
-    const double lscale = 250.0; // 500.00;
+	//const double sigma = 125.0; // 1.0; // 50.0
+	//const double lscale = 250.0; // 500.00; // 100.0
+	static double sigma = Utils::getParameterAsDouble("sigma", 5.0);
+	static double lscale = Utils::getParameterAsDouble("lscale", 250.0);
 
 	// Calculate the squared L2 norm (sum of squared diff)
-	double norm = cv::norm(histogram1, histogram2, cv::NORM_L2);
-	norm = norm*norm;
+	double norm = cv::norm(histogram1, histogram2, cv::NORM_L2); // NORM_L1
+	norm = norm*norm; // Commented out maybe
 
 	// Return the squared exponential kernel output
     return sigma*sigma*exp(-norm / (2*lscale*lscale) );
@@ -242,4 +257,186 @@ double GazeTrackerHistogramFeatures::covarianceFunctionBaseOrdered(cv::Mat histo
 
 	return norm;
 }
+
+void ExtractEyeFeaturesSegmentation::SortHistogram(	std::vector<int>* histHorizontalPixelsSegmented,
+													std::vector<int>* histVerticalPixelsSegmented,
+													std::vector<std::vector<int> >* histPositionSegmentedPixels) {
+
+	int left_pos = 0, right_pos = 0, pos_mean = 0, acum = 0;
+	bool bool_left_pos = false, bool_right_pos = false;
+
+	std::cout << "RIGHT ACUM SORT" << std::endl;
+
+	for (int j = 0; j < histHorizontalPixelsSegmented->size(); j++) {
+
+	    if ((left_pos != histHorizontalPixelsSegmented->operator[](j)) && (bool_left_pos == false)) {
+	        left_pos = j;
+	        bool_left_pos = true;
+	    }
+
+	    if ((right_pos != histHorizontalPixelsSegmented->operator[](histHorizontalPixelsSegmented->size()-j)) && (bool_right_pos == false)) {
+	        right_pos = histHorizontalPixelsSegmented->size()-j;
+	        bool_right_pos = true;
+	    }
+
+	    acum += histHorizontalPixelsSegmented->operator[](j);
+	}
+
+	std::cout << "RIGHT MEAN SORT" << std::endl;
+
+	acum = acum / 2;
+
+	for (int j = 0; j < histHorizontalPixelsSegmented->size(); j++) {
+
+	    if (acum > 0) {
+	    	acum -= histHorizontalPixelsSegmented->operator[](j);
+	    	if (acum <= 0) {
+	    		pos_mean = j;
+	    	}
+	    }
+	}
+
+	std::cout << "RIGHT GAUSSIAN SORT" << std::endl;
+
+	double sigma = 20;
+	double mean = pos_mean;
+	double diff = 0.0;
+
+	for (int j = 0; j < histHorizontalPixelsSegmented->size(); j++) {
+		diff = mean-j;
+
+		histHorizontalPixelsSegmented->operator[](j) = floor(histHorizontalPixelsSegmented->operator[](j) * exp( - diff*diff/ (2*sigma*sigma) ) );
+
+	}
+
+
+
+
+	bool_left_pos = false, left_pos = 0, bool_right_pos = false, right_pos = 0, pos_mean = 0, acum = 0;
+
+	std::cout << "LEFT ACUM SORT" << std::endl;
+
+	for (int j = 0; j < histVerticalPixelsSegmented->size(); j++) {
+
+	    if ((left_pos != histVerticalPixelsSegmented->operator[](j)) && (bool_left_pos == false)) {
+	        left_pos = j;
+	        bool_left_pos = true;
+	    }
+
+	    if ((right_pos != histVerticalPixelsSegmented->operator[](histVerticalPixelsSegmented->size()-j)) && (bool_right_pos == false)) {
+	        right_pos = histVerticalPixelsSegmented->size()-j;
+	        bool_right_pos = true;
+	    }
+
+	    acum += histVerticalPixelsSegmented->operator[](j);
+	}
+
+	std::cout << "LEFT MEAN SORT" << std::endl;
+
+	acum = acum / 2;
+
+	for (int j = 0; j < histVerticalPixelsSegmented->size(); j++) {
+
+	    if (acum > 0) {
+	    	acum -= histVerticalPixelsSegmented->operator[](j);
+	    	if (acum <= 0) {
+	    		pos_mean = j;
+	    	}
+	    }
+	}
+
+	std::cout << "LEFT GAUSSIAN SORT" << std::endl;
+
+
+	sigma = 20;
+	mean = pos_mean;
+
+	for (int j = 0; j < histVerticalPixelsSegmented->size(); j++) {
+		diff = mean-j;
+
+		histVerticalPixelsSegmented->operator[](j) = floor(histVerticalPixelsSegmented->operator[](j) * exp( - diff*diff/ (2*sigma*sigma) ) );
+
+	}
+
+
+
+	histPositionSegmentedPixels->clear();
+
+	std::cout << "HIST" << std::endl;
+
+	int max = -1;
+
+	// Obtencion del maximo
+
+	for (int j = 0; j < histHorizontalPixelsSegmented->size(); j++) {
+
+	    if (max < histHorizontalPixelsSegmented->operator[](j)) {
+	        max = histHorizontalPixelsSegmented->operator[](j);
+	    }
+	}
+
+	for (int j = 0; j < histVerticalPixelsSegmented->size(); j++) {
+
+	    if (max < histVerticalPixelsSegmented->operator[](j)) {
+	        max = histVerticalPixelsSegmented->operator[](j);
+	    }
+	}
+
+	int aux_max = -1;
+
+	// Colocacion de los elementos que contengan ese maximo en un vector
+
+	std::vector<int> aux_histPosition;
+
+	while (max > -1) {
+
+	    for (int j = 0; j < histHorizontalPixelsSegmented->size(); j++) {
+
+	        if (histHorizontalPixelsSegmented->operator[](j) == max) {
+
+	            aux_histPosition.push_back(j);
+
+	        } else if ((histHorizontalPixelsSegmented->operator[](j) < max) &&
+	            (aux_max < histHorizontalPixelsSegmented->operator[](j))) {
+
+	            aux_max = histHorizontalPixelsSegmented->operator[](j);
+	        }
+	    }
+
+	    for (int j = 0; j < histVerticalPixelsSegmented->size(); j++) {
+
+	        if (histVerticalPixelsSegmented->operator[](j) == max) {
+
+	            aux_histPosition.push_back(j + histHorizontalPixelsSegmented->size());
+
+	        } else if ((histVerticalPixelsSegmented->operator[](j) < max) &&
+	            (aux_max < histVerticalPixelsSegmented->operator[](j))) {
+
+	            aux_max = histVerticalPixelsSegmented->operator[](j);
+	        }
+	    }
+
+	    histPositionSegmentedPixels->push_back(aux_histPosition);
+
+		aux_histPosition.clear();
+
+	    max = aux_max;
+	    aux_max = -1;
+
+	}
+
+	std::cout << "histPositionSegmentedPixels: " << std::endl;
+
+	for (int i = 0; i < histPositionSegmentedPixels->size(); i++) {
+		for (int j = 0; j < histPositionSegmentedPixels->operator[](i).size(); j++) {
+			std::cout << histPositionSegmentedPixels->operator[](i).operator[](j) << " ";
+		}
+		std::cout << std::endl;
+	}
+
+
+	std::cout << "Size of vector[1]: " << histPositionSegmentedPixels->size() << std::endl;
+
+}
+
 */

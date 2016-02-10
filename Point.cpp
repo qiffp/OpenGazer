@@ -64,10 +64,6 @@ void Point::load(CvFileStorage *in, CvFileNode *node) {
     y = cvReadRealByName(in, node, "y");
 }
 
-CvPoint2D32f Point::cvPoint32() const {
-    return cvPoint2D32f(x, y);
-}
-
 Point Point::operator+(const Point &other) const {
     return Point(x + other.x, y + other.y);
 }
@@ -100,14 +96,3 @@ std::istream &operator>> (std::istream &in, Point &p) {
     in >> p.x >> p.y;
 	return in;
 }
-
-void convert(const Point &point, CvPoint2D32f &p) {
-    p.x = point.x;
-    p.y = point.y;
-}
-
-void convert(const Point& point, cv::Point2f &p) {
-    p.x = point.x;
-    p.y = point.y;
-}
-

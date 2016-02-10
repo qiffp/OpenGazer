@@ -3,11 +3,15 @@
 #include <boost/scoped_ptr.hpp>
 #include "utils.h"
 #include "GaussianProcess.cpp"
+#include "Component.h"
+
+#include "HistogramFeatureExtractor.h"
+#include "EyeExtractor.h"
 
 #define FEATURE_DIM 192
 #define MAX_SAMPLES_PER_TARGET 30
 
-class GazeTrackerHistogramFeatures {
+class GazeTrackerHistogramFeatures: public GazeTrackerComponent {
 	typedef MeanAdjustedGaussianProcess<cv::Mat> HistProcess;
 
 public:
@@ -16,11 +20,9 @@ public:
 	bool isActive();
 	void addExemplar();
 
-	// Calibration error removal
-	void removeCalibrationError(Point &estimate);
-
 	void draw();
 	void process();
+    void clear();
 	void updateEstimations();
 
 private:
@@ -28,6 +30,9 @@ private:
 	cv::Mat _currentSample, _currentSampleLeft;
 	std::vector<cv::Mat> _exemplars, _exemplarsLeft;
 	int _currentTargetSampleCount;
+    
+    HistogramFeatureExtractor *_histFeatureExtractor = NULL;
+    EyeExtractor* _eyeExtractor = NULL;
 
 	// Gaussian Process estimators for right and left eye and both directions (X, Y)
 	boost::scoped_ptr<HistProcess> _histX, _histY, _histXLeft, _histYLeft;

@@ -68,7 +68,8 @@ VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy)
 	_lastFrameTime = (time.tv_sec * 1000) + (time.tv_usec / 1000);
 
 	_capture.read(frame);
-
+    std::cout << "Frame is read with size " << frame.size().width << ", " << frame.size().height << std::endl;
+        
 	size = cv::Size(frame.size().width, frame.size().height);
 
 	videoResolution = frame.size().height;
@@ -76,6 +77,7 @@ VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy)
 
 	// In case the video is 1280/720 and we want to execute 480 (or 1280 -> 720)
 	if (videoResolution != trackerResolution) {
+        std::cout << "Video res ("<< videoResolution << ") different from tracker res ("<< trackerResolution << ")" << std::endl;
 		cv::Mat tempimage = cv::Mat(cv::Size(640, 480), CV_8UC3);
 		cv::Mat roi;
 
@@ -92,6 +94,8 @@ VideoInput::VideoInput(std::string resolution, std::string filename, bool dummy)
 
 		//std::cout << "FRAME: " << frame->height << "x" << frame->width << " " << frame->depth << std::std::endl;
 		//std::cout << "TEMP: " << tempImage->height << "x" << tempImage->width << " " << tempImage->depth << std::endl;
+        std::cout << "Resizing to: " << tempimage.size().width << "x" << tempimage.size().height << std::endl;
+        
 		resize(roi, tempimage, tempimage.size());
 		frame = tempimage;
 		
@@ -132,6 +136,10 @@ void VideoInput::updateFrame() {
 		if (captureFromVideo && videoResolution != trackerResolution) {
 			cv::Mat temp_image;
 			_capture.read(temp_image);
+            
+            if(temp_image.empty()) {
+                throw Utils::QuitNow();
+            }
 
 			cv::Mat roi = temp_image;
 
@@ -160,7 +168,7 @@ void VideoInput::updateFrame() {
 }
 
 void VideoInput::prepareDebugFrame() {
-	cv::Rect *geometry = Utils::getDebugMonitorGeometry();
+	cv::Rect *geometry = Utils::getFirstMonitorGeometry();
 	
 	int width = geometry->width;
 	int height = geometry->height;
@@ -176,13 +184,8 @@ void VideoInput::prepareDebugFrame() {
 		height = (int) (width / frameAspectRatio);
 	}
 	
-	std::cout << "Aspect ratios: " << screenAspectRatio << ", " << frameAspectRatio << std::endl;
-	std::cout << "Width and height: " << width << ", " << height << std::endl << std::endl << std::endl;
 	
 	debugFrame.create(cv::Size(width, height), CV_8UC3);
-	
-	std::cout << "Frame size: " << frame.size().width << "x" << frame.size().height << std::endl;
-	std::cout << "Debug Frame size: " << debugFrame.size().width << "x" << debugFrame.size().height << std::endl;
 	
 	copyToDebugFrame();
 }

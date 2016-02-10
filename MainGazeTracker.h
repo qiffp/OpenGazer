@@ -3,6 +3,8 @@
 #include <fstream>
 
 
+#include "EyeExtractor.h"
+
 #include "Calibrator.h"
 #include "OutputMethods.h"
 #include "Video.h"
@@ -20,6 +22,8 @@ public:
 	void simulateClicks();
 	void processActionSignals();
 	void cleanUp();
+    Component* getComponent(std::string name);
+    CommandLineArguments args;
 	
 public slots:
 	void process();
@@ -40,14 +44,13 @@ private:
 	std::ifstream _commandInputFile;
 	std::vector<Command> _commands;
 	int _commandIndex;
-	
-	// Gui event variables
-	//bool _initiateCalibration;
-	//bool _initiateTesting;
-	//bool _initiatePointSelection;
-	//bool _initiatePointClearing;
+    
+    EyeExtractor* _eyeExtractor = NULL;
 	
 	int _headDistance;
 	QTimer _timer;
+    
+    void addComponent(std::string name, Component *component);
+    void calculateError(Point estimation, Point target, double &errorHorizontal, double &errorVertical, double &errorCombined);
 };
 

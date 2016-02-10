@@ -24,14 +24,14 @@ void PointTrackerWithTemplate::process() {
 
 	// If the templates are already extracted and the points are being tracked,
 	// try to improve the OF tracking with template matching
-	if (Application::Components::pointTracker->isTrackingSuccessful() && _templatesInitialized) {
+	if (Application::Data::isTrackingSuccessful && _templatesInitialized) {
 		updatePointPositions();
     }
 }
 
 void PointTrackerWithTemplate::extractTemplates() {
-	cv::Point2f point1 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint1];
-	cv::Point2f point2 = Application::Components::pointTracker->currentPoints[PointTracker::eyePoint2];
+	cv::Point2f point1 = Application::Data::anchorPoints[PointTracker::eyePoint1];
+	cv::Point2f point2 = Application::Data::anchorPoints[PointTracker::eyePoint2];
 
 	cv::Mat frame = Application::Components::videoInput->frameGrey;
 
@@ -61,7 +61,7 @@ void PointTrackerWithTemplate::updatePointPositions() {
 
 	// Repeat for right and left sides
 	for(int side=0; side<2; side++) {
-		cv::Point2f *point = &(Application::Components::pointTracker->currentPoints[side]);
+		cv::Point2f *point = &(Application::Data::anchorPoints[side]);
 		cv::Mat grey = Application::Components::videoInput->frameGrey;
 		cv::Mat cornerTemplate = _templateRight;
 

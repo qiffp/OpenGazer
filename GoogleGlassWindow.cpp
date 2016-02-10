@@ -39,10 +39,7 @@ GoogleGlassWindow::GoogleGlassWindow():
 
 
 	// Load images and prepare the interface image
-	boost::filesystem::directory_iterator end_itr;
-
-	boost::filesystem::path pictures_path("../Images_Google/Pictures");
-	boost::filesystem::directory_iterator picture_image(pictures_path);
+	std::string imagesDir = "./glass";
 
 	for (int i = 0; i < picturesX; i++) {
 
@@ -50,7 +47,7 @@ GoogleGlassWindow::GoogleGlassWindow():
 			int imageIndex = i * picturesY + j + 1;
 
 			// Load the stimuli image (photos of places) and store in the base image
-			cv::Mat picture = cv::imread("../Images_Google/Pictures/"+ boost::lexical_cast<std::string>(imageIndex) + ".jpg", CV_LOAD_IMAGE_COLOR);
+			cv::Mat picture = cv::imread(imagesDir + "/" + boost::lexical_cast<std::string>(imageIndex) + ".jpg", CV_LOAD_IMAGE_COLOR);
 			cv::resize(picture, _pictureResized, _pictureResized.size());
 			cv::Rect roiRect = cv::Rect(_pictureResized.size().width * i,
 										_pictureResized.size().height * j,
@@ -61,10 +58,10 @@ GoogleGlassWindow::GoogleGlassWindow():
 
 
 			// Load the corresponding text image
-			cv::Mat text = cv::imread("../Images_Google/Pictures/"+ boost::lexical_cast<std::string>(imageIndex) + "_text.jpg", CV_LOAD_IMAGE_COLOR);
+			cv::Mat text = cv::imread(imagesDir + "/" + boost::lexical_cast<std::string>(imageIndex) + "_text.jpg", CV_LOAD_IMAGE_COLOR);
 
 			cv::resize(text, text, _interfaceText.size());
-			
+
 			_textImages.push_back(text);
 		}
 	}
@@ -88,10 +85,8 @@ void GoogleGlassWindow::process() {
 	}
 
 	// Get the current estimation and calculate the image index it corresponds to
-	int estimation_x = (Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x) / 2;
-	int estimation_y = (Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y) / 2;
-	//int estimation_x = (Application::Data::gazePointHistFeaturesGP.x + Application::Data::gazePointHistFeaturesGPLeft.x) / 2;
-	//int estimation_y = (Application::Data::gazePointHistFeaturesGP.y + Application::Data::gazePointHistFeaturesGPLeft.y) / 2;
+	int estimation_x = Application::Data::gazePoints[0].x;
+	int estimation_y = Application::Data::gazePoints[0].y;
 
 	//std::cout << "Estimations: " << estimation_x << ", " << estimation_y << std::endl;
 

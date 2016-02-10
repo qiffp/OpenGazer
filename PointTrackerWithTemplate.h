@@ -1,7 +1,9 @@
 #pragma once
-#include "utils.h"
 
-class PointTrackerWithTemplate {
+#include "utils.h"
+#include "Component.h"
+
+class PointTrackerWithTemplate: public Component {
     cv::Mat _templateRight, _templateLeft;
     bool _templatesInitialized;
     cv::Mat _temporarySearchArea, _temporarySearchResults;

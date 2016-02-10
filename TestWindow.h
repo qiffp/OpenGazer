@@ -2,8 +2,9 @@
 
 #include "ImageWindow.h"
 #include "Point.h"
+#include "Component.h"
 
-class TestWindow {
+class TestWindow: public Component {
 public:
 	TestWindow(const std::vector<Point> &points);
 	~TestWindow();

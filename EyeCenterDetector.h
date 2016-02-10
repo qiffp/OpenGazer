@@ -1,4 +1,8 @@
 #pragma once
+
+#include "Component.h"
+#include "EyeExtractor.h"
+
 /*
  * Eye center detection algorithm by Timm, F. and Barth, E.
  * Implementation adapted from https://github.com/trishume/eyeLike
@@ -31,7 +35,7 @@ const float kPostProcessThreshold = 0.97;
 // Eye Corner
 const bool kEnableEyeCorner = false;
 
-class EyeCenterDetector {
+class EyeCenterDetector: public Component {
 public:
 	EyeCenterDetector();
 	cv::Point findEyeCenter(cv::Mat eyeImage);
@@ -42,6 +46,8 @@ public:
 	cv::Point eyeCenterLeft;
 	
 private:
+    EyeExtractor* _eyeExtractor = NULL;
+    
 	//cv::Point unscalePoint(cv::Point p, cv::Mat origSize);
 	//void scaleToFastSize(const cv::Mat &src,cv::Mat &dst);
 	cv::Mat computeMatXGradient(const cv::Mat &mat);

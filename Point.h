@@ -14,7 +14,6 @@ struct Point {
 	int closestPoint(const std::vector<Point> &points) const;
 	void save(CvFileStorage *out, const char *name) const;
 	void load(CvFileStorage *in, CvFileNode *node);
-	CvPoint2D32f cvPoint32() const;
 
 	void operator=(CvPoint2D32f const &point);
 	void operator=(CvPoint const &point);
@@ -25,6 +24,4 @@ struct Point {
 
 std::ostream &operator<< (std::ostream &out, const Point &p);
 std::istream &operator>> (std::istream &in, Point &p);
-void convert(const Point &point, CvPoint2D32f &p);
-void convert(const Point &point, cv::Point2f &p);
 

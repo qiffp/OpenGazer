@@ -68,10 +68,11 @@ void FrogGame::process() {
 		return;
 	}
 	
-	int lastEstimationX = (Application::Data::gazePointGP.x + Application::Data::gazePointGPLeft.x) / 2;
-	int lastEstimationY = (Application::Data::gazePointGP.y + Application::Data::gazePointGPLeft.y) / 2;
-	//int lastEstimationX = (Application::Data::gazePointHistFeaturesGP.x + Application::Data::gazePointHistFeaturesGPLeft.x) / 2;
-	//int lastEstimationY = (Application::Data::gazePointHistFeaturesGP.y + Application::Data::gazePointHistFeaturesGPLeft.y) / 2;
+    Point mappedEstimation;
+    Utils::mapToFirstMonitorCoordinates(Application::Data::gazePoints[0], mappedEstimation);
+    
+	int lastEstimationX = mappedEstimation.x;
+	int lastEstimationY = mappedEstimation.y;
 
 	//const int width = _backgroundWithFrog.size().width;
 	//const int height = _backgroundWithFrog.size().height;

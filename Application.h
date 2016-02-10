@@ -1,24 +1,17 @@
 #pragma once
 
 #include <fstream>
+#include <map>
 
+#include "Configuration.h"
 #include "OutputMethods.h"
+
+// Include files for system components
 #include "Video.h"
+#include "MainGazeTracker.h"
 #include "Calibrator.h"
 #include "DebugWindow.h"
-#include "HeadCompensation.h"
-#include "PointTracker.h"
-#include "EyeExtractor.h"
-#include "EyeExtractorSegmentationGroundTruth.h"
-#include "EyeCenterDetector.h"
-#include "MainGazeTracker.h"
 #include "TestWindow.h"
-#include "GoogleGlassWindow.h"
-#include "FrogGame.h"
-#include "HistogramFeatureExtractor.h"
-#include "GazeTrackerHistogramFeatures.h"
-#include "AnchorPointSelector.h"
-#include "PointTrackerWithTemplate.h"
 
 namespace Application {
 	// Tracker status
@@ -36,12 +29,19 @@ namespace Application {
 	extern int testDwelltimeParameter;
 	extern int sleepParameter;
 	extern std::ofstream resultsOutputFile;
+    
+    extern Configuration config;
 
 
 	namespace Settings {
 		extern bool videoOverlays;
 		extern bool recording;
+		extern bool noWindows;
+		extern bool noTracking;
+		extern bool useGroundTruth;
 	}
+    
+    extern std::map<std::string, Component*> components;
 
 	namespace Components {
 		extern boost::scoped_ptr<VideoInput> videoInput;
@@ -50,31 +50,13 @@ namespace Application {
 		// The main class containing the processing loop
 		extern MainGazeTracker *mainTracker;
 
-		// Point selection component for initialization
-		extern AnchorPointSelector *anchorPointSelector;
-
-		// Preprocessing (before gaze estimation) components
-		// that prepare the necessary data used in estimation
-		extern PointTracker *pointTracker;
-		extern PointTrackerWithTemplate *pointTrackerWithTemplate;
-		extern HeadTracker *headTracker;
-		extern HeadCompensation *headCompensation;
-		extern EyeExtractor *eyeExtractor;
-		extern EyeExtractorSegmentationGroundTruth *eyeExtractorSegmentationGroundTruth;
-		extern EyeCenterDetector *eyeCenterDetector;
-		extern HistogramFeatureExtractor *histFeatureExtractor;
-
-		// Gaze tracker components
-		extern GazeTracker *gazeTracker;
-		extern GazeTrackerHistogramFeatures *gazeTrackerHistogramFeatures;
-
 		// Other components mainly taking care of calibration/test flow and display
 		extern Calibrator *calibrator;
 		extern DebugWindow *debugWindow;
 		extern TestWindow *testWindow;
-		extern GoogleGlassWindow *googleGlassWindow;
-		extern FrogGame *frogGame;
 	}
+    
+    Component* getComponent(std::string name);
 
 	namespace Signals {
 		extern int initiateCalibrationFrameNo;
@@ -86,19 +68,12 @@ namespace Application {
 	namespace Data {
 		extern std::vector<Point> calibrationTargets;
 
-		// Outputs for Gaussian Process estimator
-		extern Point gazePointGP;
-		extern Point gazePointGPLeft;
-
-		// Outputs for Histogram Features Gaussian Process estimator
-		extern Point gazePointHistFeaturesGP;
-		extern Point gazePointHistFeaturesGPLeft;
-
-		// Outputs for Neural Network estimator
-		extern Point gazePointNN;
-		extern Point gazePointNNLeft;
-
-
+		// Outputs for all gaze estimators
+        extern std::vector<Point> gazePoints;
+        
+        // Positions of facial anchor points
+        extern std::vector<cv::Point2f> anchorPoints;
+        extern bool isTrackingSuccessful;
 	}
 
 	std::vector<boost::shared_ptr<AbstractStore> > getStores();

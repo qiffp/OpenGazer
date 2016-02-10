@@ -1,13 +1,18 @@
 #include <fstream>
+#include <map>
+#include <boost/filesystem.hpp>
 
 #include "MainGazeTracker.h"
 
 
 #include "PointTracker.h"
-#include "EyeExtractor.h"
 #include "GazeTracker.h"
 #include "HeadTracker.h"
-#include "HeadCompensation.h"
+#include "EyeCenterDetector.h"
+#include "HistogramFeatureExtractor.h"
+#include "PointTrackerWithTemplate.h"
+#include "GazeTrackerHistogramFeatures.h"
+#include "FrogGame.h"
 
 #include "Application.h"
 #include "utils.h"
@@ -20,39 +25,50 @@
 
 MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	_stores(Application::getStores()),
-	_commandIndex(-1)
+	_commandIndex(-1),
+	args(argc, argv)
 {
 	Application::Components::mainTracker = this;
 
-	CommandLineArguments args(argc, argv);
-
 	if (args.getOptionValue("help").length()) {
 		std::cout << std::endl;
-		std::cout << "CVC Machine Vision Group Eye-Tracker" << std::endl;
+		std::cout << "CVC Eye Tracker" << std::endl;
 		std::cout << std::endl << std::endl;
-		std::cout << "Usage:\teyetracker --subject=SUBJECT_NAME [--resolution=[480|720]] [--setup=SETUP_FOLDER_NAME] [--headdistance=DISTANCE] [--record=[0|1]] [--overlay=[0|1]] [--input=INPUT_FILE_PATH]" << std::endl;
+		std::cout << "Usage:    eyetracker --subject=SUBJECT_NAME [--resolution=[480|720]] [--setup=SETUP_FOLDER_NAME] [--headdistance=DISTANCE] [--record=[0|1]] [--overlay=[0|1]] [--input=INPUT_FILE_PATH] [--nowindows=[0|1]]" << std::endl;
 		std::cout << std::endl << std::endl;
+        
 		std::cout << "OPTIONS:" << std::endl;
-		std::cout << "\tsubject:\tSubject\'s name to be used in the output file name." << std::endl;
-		std::cout << "\tresolution:\tResolution for the camera. 480 for 640x480 resolution, 720 for 1280x720." << std::endl;
-		std::cout << "\tsetup:\t\tExperiment setup name and also the folder to read the test and calibration point locations." << std::endl;
-		std::cout << "\theaddistance:\tSubject\'s head distance in cm to be included in the output file for automatic error calculation purposes." << std::endl;
-		std::cout << "\trecord:\t\tWhether a video of the experiment should be recorded for offline processing purposes." << std::endl;
-		std::cout << "\toverlay:\tWhether target point and estimation pointers are written as an overlay to the recorded video. Should not be used when offline processing is desired on the output video." << std::endl;
-		std::cout << "\tinput:\t\tInput video path in case of offline processing." << std::endl;
+        std::cout << "  config:      Path to the configuration file (for system components)." << std::endl;
 		std::cout << std::endl << std::endl;
-		std::cout << "SAMPLE USAGES:" << std::endl;
-		std::cout << "\tBasic usage without video recording:" << std::endl;
-		std::cout << "\t\t./eyetracker --subject=david --resolution=720 --setup=std --headdistance=80 --record=0" << std::endl;
-		std::cout << std::endl;
-		std::cout << "\tUsage during experiments to enable video recording for offline processing:" << std::endl;
-		std::cout << "\t\t./eyetracker --subject=david --resolution=720 --setup=std --headdistance=80 --record=1" << std::endl;
-		std::cout << std::endl;
-		std::cout << "\tUsage during offline processing:" << std::endl;
-		std::cout << "\t\t./eyetracker --subject=david --resolution=720 --setup=std --headdistance=80 --record=1 --overlay=1 --input=../outputs/david_std_720_1.avi" << std::endl;
-		std::cout << std::endl;
-		std::cout << "\tUsage during offline processing with lower resolution:" << std::endl;
-		std::cout << "\t\t./eyetracker --subject=david --resolution=480 --setup=std --headdistance=80 --record=1 --overlay=1 --input=../outputs/david_std_720_1.avi" << std::endl;
+        
+        
+        if (args.getOptionValue("advanced").length()) {
+            std::cout << "  subject:      Subject\'s name to be used in the output file name." << std::endl;
+            std::cout << "  resolution:   Resolution for the camera. 480 for 640x480 resolution, 720 for 1280x720." << std::endl;
+            std::cout << "  setup:        Experiment setup name and also the folder to read the test and calibration point locations." << std::endl;
+            std::cout << "  headdistance: Subject\'s head distance in cm for automatic angular error calculation purposes." << std::endl;
+            std::cout << "  record:       Whether a video of the experiment should be recorded for offline processing purposes." << std::endl;
+            std::cout << "  overlay:      Whether target point and estimation pointers are written as an overlay to the recorded video. Should not be used when offline processing is desired on the output video." << std::endl;
+            std::cout << "  input:        Input video path in case of offline processing." << std::endl;
+            std::cout << "  nowindows:    Do not show any windows, used for re-running experiments." << std::endl;
+            std::cout << std::endl << std::endl;
+
+            std::cout << "SAMPLE USAGES:" << std::endl;
+            std::cout << "  Basic usage without video recording:" << std::endl;
+            std::cout << "    ./eyetracker --subject=david --resolution=720 --setup=std --headdistance=80 --record=0" << std::endl;
+            std::cout << std::endl;
+            std::cout << "  Usage during experiments to enable video recording for offline processing:" << std::endl;
+            std::cout << "    ./eyetracker --subject=david --resolution=720 --setup=std --headdistance=80 --record=1" << std::endl;
+            std::cout << std::endl;
+            std::cout << "  Usage during offline processing:" << std::endl;
+            std::cout << "    ./eyetracker --subject=david --resolution=720 --setup=std --headdistance=80 --record=1 --overlay=1 --input=../outputs/david_std_720_1.avi --nowindows=1" << std::endl;
+            std::cout << std::endl;
+            std::cout << "  Usage during offline processing with lower resolution:" << std::endl;
+            std::cout << "    ./eyetracker --subject=david --resolution=480 --setup=std --headdistance=80 --record=1 --overlay=1 --input=../outputs/david_std_720_1.avi --nowindows=1" << std::endl;
+        }
+        else {
+            std::cout << "  Run  'eyetracker --help --advanced' for advanced options." << std::endl;
+        }
 		std::cout << std::endl << std::endl;
 		exit(0);
 	}
@@ -104,6 +120,15 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	if (args.getOptionValue("overlay") == "1") {
 		Application::Settings::videoOverlays = true;
 	}
+        
+    std::string configFile = args.getOptionValue("config");
+        
+    if (configFile.length() == 0) {
+        configFile = "standard.xml";
+    }
+    
+    // Load component configuration file
+    Application::config.load("./config/" + configFile);
 
 	// --headdistance parameter
 	if (args.getOptionValue("headdistance").length()) {
@@ -134,38 +159,68 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	 }
 
 	// --folder parameter
-	std::string folderParameter = "outputs";
+	std::string folderParameter = "./outputs";
 
 	if (args.getOptionValue("outputfolder").length()) {
 		folderParameter = args.getOptionValue("outputfolder");
 	}
+
+	// Make sure the output folders exist before continuing
+	boost::filesystem::path folder(folderParameter);
+	boost::filesystem::create_directories(folder);
 
 	// --subject parameter
 	_basePath = Utils::getUniqueFileName(folderParameter, subject + "_" + setup + "_" + args.getOptionValue("resolution"));
 
 	// --record parameter
 	if (args.getOptionValue("record") == "1") {
-		Application::Components::video.reset(new VideoWriter(Application::Components::videoInput->size, _basePath.substr(0, _basePath.length() - 4) + ".avi"));
+		if(Application::Settings::videoOverlays) {
+			Application::Components::video.reset(new VideoWriter(Application::Components::videoInput->debugFrame.size(), _basePath.substr(0, _basePath.length() - 4) + ".avi"));
+		}
+		else {
+			Application::Components::video.reset(new VideoWriter(Application::Components::videoInput->size, _basePath.substr(0, _basePath.length() - 4) + ".avi"));
+		}
+
 		Application::Settings::recording = true;
 	}
 
-	Application::resultsOutputFile.open((_basePath + "_").c_str());
+	// --nowindows parameter
+	if (args.getOptionValue("nowindows") == "1") {
+		Application::Settings::noWindows = true;
+	}
 
-	// First write the system time
-	time_t currentTime = time(NULL);
-	Application::resultsOutputFile << ctime(&currentTime) << std::endl;
+	// --usegt parameter
+	if (args.getOptionValue("usegt") == "1") {
+		Application::Settings::useGroundTruth = true;
+	}
 
-	// Then write the setup parameters
-	Application::resultsOutputFile << "--input=" << args.getOptionValue("input") << std::endl;
-	Application::resultsOutputFile << "--record=" << args.getOptionValue("record") << std::endl;
-	Application::resultsOutputFile << "--overlay=" << (Application::Settings::videoOverlays ? "true" : "false") << std::endl;
-	Application::resultsOutputFile << "--headdistance=" << _headDistance << std::endl;
-	Application::resultsOutputFile << "--resolution=" << args.getOptionValue("resolution") << std::endl;
-	Application::resultsOutputFile << "--setup=" << setup << std::endl;
-	Application::resultsOutputFile << "--subject=" << subject << std::endl << std::endl;
+	// --notracking parameter
+	if (args.getOptionValue("notracking") == "1") {
+		Application::Settings::noTracking = true;
+	}
+
+    // Create output file only if the "subject" parameter is given
+    if(args.getOptionValue("subject").length() > 0) {
+        Application::resultsOutputFile.open((_basePath + "_").c_str());
+
+        // First write the system time
+        time_t currentTime = time(NULL);
+        Application::resultsOutputFile << ctime(&currentTime) << std::endl;
+
+        // Then write the setup parameters
+        Application::resultsOutputFile << "--input=" << args.getOptionValue("input") << std::endl;
+        Application::resultsOutputFile << "--record=" << args.getOptionValue("record") << std::endl;
+        Application::resultsOutputFile << "--overlay=" << (Application::Settings::videoOverlays ? "true" : "false") << std::endl;
+        Application::resultsOutputFile << "--headdistance=" << _headDistance << std::endl;
+        Application::resultsOutputFile << "--resolution=" << args.getOptionValue("resolution") << std::endl;
+        Application::resultsOutputFile << "--setup=" << setup << std::endl;
+        Application::resultsOutputFile << "--subject=" << subject << std::endl << std::endl;
+        Application::resultsOutputFile << "--sigma=" << args.getOptionValue("sigma") << std::endl;
+        Application::resultsOutputFile << "--lscale=" << args.getOptionValue("lscale") << std::endl;
+    }
 
 	// Finally the screen resolution
-	cv::Rect *rect = Utils::getSecondaryMonitorGeometry();
+	cv::Rect *rect = Utils::getSecondMonitorGeometry();
 
 	Application::resultsOutputFile << "Screen resolution: " << rect->width << " x " << rect->height << " (Position: "<< rect->x << ", "<< rect->y << ")" << std::endl << std::endl;
 	Application::resultsOutputFile.flush();
@@ -179,17 +234,24 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	_directory = setup;
 
 	// Create system components
-	Application::Components::anchorPointSelector = new AnchorPointSelector();
-	Application::Components::pointTracker = new PointTracker(Application::Components::videoInput->size);
-	Application::Components::pointTrackerWithTemplate = new PointTrackerWithTemplate();
-	Application::Components::eyeExtractor = new EyeExtractor();
-	//Application::Components::eyeExtractorSegmentationGroundTruth = new EyeExtractorSegmentationGroundTruth();
-	//Application::Components::eyeCenterDetector = new EyeCenterDetector();
-	Application::Components::histFeatureExtractor = new HistogramFeatureExtractor();
-	Application::Components::gazeTracker = new GazeTracker();
-	Application::Components::gazeTrackerHistogramFeatures = new GazeTrackerHistogramFeatures();
-	Application::Components::headTracker = new HeadTracker();
-	Application::Components::headCompensation = new HeadCompensation();
+    // Pre-gaze components
+    addComponent("AnchorPointSelector", new AnchorPointSelector());
+    addComponent("EyeCenterDetector", new EyeCenterDetector());
+    addComponent("EyeExtractor", new EyeExtractor());
+    addComponent("HeadTracker", new HeadTracker());
+    addComponent("HistogramFeatureExtractor", new HistogramFeatureExtractor());
+    addComponent("PointTracker", new PointTracker());
+    addComponent("PointTrackerWithTemplate", new PointTrackerWithTemplate());
+    
+    _eyeExtractor = (EyeExtractor*) getComponent("EyeExtractor");
+    
+    // Gaze estimation components
+    addComponent("GazeTracker", new GazeTracker());
+    addComponent("GazeTrackerHistogramFeatures", new GazeTrackerHistogramFeatures());
+    
+    // Post-gaze components
+    addComponent("FrogGame", new FrogGame());
+    //addComponent("GoogleGlassWindow", new GoogleGlassWindow());
 
 	// Read calibration target list and create the calibrator object
 	std::ifstream calibrationTargetFile((_directory + "/calpoints.txt").c_str());
@@ -200,13 +262,16 @@ MainGazeTracker::MainGazeTracker(int argc, char **argv):
 	std::ifstream testTargetFile((_directory + "/testpoints.txt").c_str());
 	std::vector<Point> testTargets = Utils::readAndScalePoints(testTargetFile);
 	Application::Components::testWindow = new TestWindow(testTargets);
-
-	std::cout << "Creating Glass window" << std::endl;
-	Application::Components::googleGlassWindow = new GoogleGlassWindow();
-	Application::Components::frogGame = new FrogGame();
+    
+    // Create the debug window
 	Application::Components::debugWindow = new DebugWindow();
-
 	Application::Components::debugWindow->raise();
+        
+    
+    // Add gaze point output variables for each gaze component
+    for (int i=0; i<Application::config.gaze_components.size(); i++){
+        Application::Data::gazePoints.push_back(Point(0, 0));
+    }
 
 	// Create timer for initiating main loop
 	connect(&_timer, SIGNAL (timeout()), this, SLOT (process()));
@@ -218,6 +283,8 @@ MainGazeTracker::~MainGazeTracker() {
 }
 
 void MainGazeTracker::process() {
+    double errorHorizontal, errorVertical, errorCombined;
+    
 	// Read the next camera/video frame
 	Application::Components::videoInput->updateFrame();
 
@@ -230,78 +297,95 @@ void MainGazeTracker::process() {
 	simulateClicks();
 	processActionSignals();
 
-	// Process all components
+	// Process obligatory components
 	Application::Components::calibrator->process();
 	Application::Components::testWindow->process();
-	Application::Components::anchorPointSelector->process();
-	Application::Components::pointTracker->process();
-	Application::Components::pointTrackerWithTemplate->process();
-	Application::Components::headTracker->process();
-	Application::Components::eyeExtractor->process();
-	Application::Components::histFeatureExtractor->process();
-	//Application::Components::eyeExtractorSegmentationGroundTruth->process();
-	//Application::Components::eyeCenterDetector->process();
-	//Application::Components::gazeTracker->process();
-	Application::Components::gazeTrackerHistogramFeatures->process();
-
-	//Application::Components::googleGlassWindow->process();
-	//Application::Components::frogGame->process();
-
+    
+    // Process rest of the components (read from config file)
+    // 1) Components to run before gaze estimation
+    for (int i=0; i<Application::config.pre_components.size(); i++){
+        Component* comp = getComponent(Application::config.pre_components[i]);
+        comp->process();
+    }
+    
+    // 2) Gaze estimation components
+    for (int i=0; i<Application::config.gaze_components.size(); i++){
+        GazeTrackerComponent* comp = (GazeTrackerComponent *) getComponent(Application::config.gaze_components[i]);
+        comp->process();
+        
+        // Copy the gaze outputs to the shared vector
+        Application::Data::gazePoints[i].x = comp->gazePoint.x;
+        Application::Data::gazePoints[i].y = comp->gazePoint.y;
+    }
+    
+    // 3) Components to run after gaze estimation (games, etc.)
+    for (int i=0; i<Application::config.post_components.size(); i++){
+        Component* comp = getComponent(Application::config.post_components[i]);
+        comp->process();
+    }
 
 	// Draw components' debug information on debug image
 	Application::Components::calibrator->draw();
 	Application::Components::testWindow->draw();
-	Application::Components::anchorPointSelector->draw();
-	Application::Components::pointTracker->draw();
-	Application::Components::pointTrackerWithTemplate->draw();
-	Application::Components::headTracker->draw();
-	Application::Components::eyeExtractor->draw();
-	Application::Components::histFeatureExtractor->draw();
-	//Application::Components::eyeExtractorSegmentationGroundTruth->draw();
-	//Application::Components::eyeCenterDetector->draw();
-	//Application::Components::gazeTracker->draw();
-	Application::Components::gazeTrackerHistogramFeatures->draw();
-
-	//Application::Components::googleGlassWindow->draw();
-	//Application::Components::frogGame->draw();
-
-
+    
+    // Draw rest of the components (read from config file)
+    for (int i=0; i<Application::config.all_components.size(); i++){
+        Component* comp = getComponent(Application::config.all_components[i]);
+        comp->draw();
+    }
+    
 	// Display debug image in the window
 	Application::Components::debugWindow->display();
 
-	if ( (Application::Components::gazeTracker != NULL) && (Application::Components::gazeTracker->isActive()) /*||
-		(Application::Components::gazeTrackerHistogramFeatures != NULL) && (Application::Components::gazeTrackerHistogramFeatures->isActive()) */ ) {
-		// Write the output to all the channels
-		xForEach(iter, _stores) {
-			(*iter)->store();
-		}
+    
+    for (int i=0; i<Application::config.gaze_components.size(); i++){
+        GazeTrackerComponent* comp = (GazeTrackerComponent*) getComponent(Application::config.gaze_components[i]);
+        
+        if (comp->isActive()) {
+            // Only for the first gaze tracker component,
+            // communicate the output through all channels
+            if(i == 0) {
+                xForEach(iter, _stores) {
+                    (*iter)->store();
+                }
+            }
+            
+            // If there is no result output file,
+            // or if we are not in the test phase,
+            // or there is a blink,
+            // or we are in the first half of dwell time, 
+            // (We assume that the subject is still looking at the previous target 
+            // during these frames and discard them.)
+            // skip writing output
+            if (!Application::resultsOutputFile.is_open() ||
+                Application::status != Application::STATUS_TESTING ||
+                _eyeExtractor->isBlinking() ||
+                Application::Components::testWindow->getPointFrameNo() < Application::testDwelltimeParameter/2) {
+                continue;
+            }
+            
+            // Write the fixed part of the output file rows  
+            if(i == 0) {
+                Application::resultsOutputFile << Application::Components::testWindow->getPointFrameNo() + 1 << "\t"
+                << Application::Components::testWindow->getActivePoint().x << "\t" << Application::Components::testWindow->getActivePoint().y;
+            }
+            
+            // Write the error information to the output text file
+            calculateError(comp->gazePoint, Application::Components::testWindow->getActivePoint(), errorHorizontal, errorVertical, errorCombined);
 
-		// Write the same info to the output text file
-		if (Application::resultsOutputFile != NULL) {
-			if (Application::status == Application::STATUS_TESTING) {
-				if (!Application::Components::eyeExtractor->isBlinking()) {
-					Application::resultsOutputFile << Application::Components::testWindow->getPointFrameNo() + 1 << "\t"
-						<< Application::Components::testWindow->getActivePoint().x << "\t" << Application::Components::testWindow->getActivePoint().y << "\t"
-						<< (Application::Data::gazePointGP.x+Application::Data::gazePointGPLeft.x)/2 	<< "\t"
-						<< (Application::Data::gazePointGP.y+Application::Data::gazePointGPLeft.y)/2 	<< "\t"
-						<< (Application::Data::gazePointHistFeaturesGP.x + Application::Data::gazePointHistFeaturesGPLeft.x)/2 	<< "\t"
-						<< (Application::Data::gazePointHistFeaturesGP.y + Application::Data::gazePointHistFeaturesGP.y)/2 	<< "\t"
-						<< std::endl;
-				} else {
-					Application::resultsOutputFile << Application::Components::testWindow->getPointFrameNo() + 1 << "\t"
-						<< Application::Components::testWindow->getActivePoint().x << "\t" << Application::Components::testWindow->getActivePoint().y << "\t"
-						<< 0 << "\t" << 0 << "\t"
-						<< 0 << "\t" << 0
-						<< std::endl;
-				}
-			}
+            Application::resultsOutputFile << "\t" << comp->gazePoint.x << "\t" << comp->gazePoint.y;
+            Application::resultsOutputFile << "\t" << errorHorizontal << "\t" << errorVertical << "\t" << errorCombined;
 
-			Application::resultsOutputFile.flush();
-		}
-	}
+            // Write end of line
+            if(i == Application::config.gaze_components.size()-1) {
+                Application::resultsOutputFile << std::endl;
+            }
+        }
+    }
 
 	// If video output is requested
 	if (Application::Settings::recording) {
+        // Write frame with or without the overlays (debug information)
 		if (Application::Settings::videoOverlays) {
 			Application::Components::video->write(Application::Components::videoInput->debugFrame);
 		}
@@ -316,28 +400,24 @@ void MainGazeTracker::simulateClicks() {
 		while(_commandIndex >= 0 && _commandIndex <= (_commands.size() - 1) && _commands[_commandIndex].frameNumber == Application::Components::videoInput->frameCount) {
 			std::cout << "Command: " << _commands[_commandIndex].commandName << std::endl;
 			if(strcmp(_commands[_commandIndex].commandName.c_str(), "SELECT") == 0) {
-				std::cout << "Choosing points automatically" << std::endl;
+				//std::cout << "Choosing points automatically" << std::endl;
 				Application::Signals::initiatePointSelectionFrameNo = Application::Components::videoInput->frameCount;
 			}
 			else if(strcmp(_commands[_commandIndex].commandName.c_str(), "CLEAR") == 0) {
-				std::cout << "Clearing points automatically" << std::endl;
+				//std::cout << "Clearing points automatically" << std::endl;
 				Application::Signals::initiatePointClearingFrameNo = Application::Components::videoInput->frameCount;
 			}
 			else if(strcmp(_commands[_commandIndex].commandName.c_str(), "CALIBRATE") == 0) {
-				std::cout << "Calibrating automatically" << std::endl;
+				//std::cout << "Calibrating automatically" << std::endl;
 				Application::Signals::initiateCalibrationFrameNo = Application::Components::videoInput->frameCount;
 			}
 			else if(strcmp(_commands[_commandIndex].commandName.c_str(), "TEST") == 0) {
-				std::cout << "Testing automatically" << std::endl;
+				//std::cout << "Testing automatically" << std::endl;
 				Application::Signals::initiateTestingFrameNo = Application::Components::videoInput->frameCount;
 			}
 
 			_commandIndex++;
 		}
-
-		//if (_commandIndex == _commands.size() && (Application::status == Application::STATUS_IDLE || Application::status == Application::STATUS_CALIBRATED)) {
-		//	throw Utils::QuitNow();
-		//}
 	}
 }
 
@@ -387,7 +467,9 @@ void MainGazeTracker::processActionSignals() {
 }
 
 void MainGazeTracker::cleanUp() {
-	Application::resultsOutputFile.close();
+    if (Application::resultsOutputFile.is_open())
+	   Application::resultsOutputFile.close();
+    
 	rename((_basePath + "_").c_str(), _basePath.c_str());
 }
 
@@ -407,4 +489,60 @@ void MainGazeTracker::choosePoints() {
 
 void MainGazeTracker::clearPoints() {
 	Application::Signals::initiatePointClearingFrameNo = Application::Components::videoInput->frameCount + 1;
+}
+
+void MainGazeTracker::addComponent(std::string name, Component *component) {
+    Application::components.insert(std::make_pair(name, component));
+}
+
+Component* MainGazeTracker::getComponent(std::string name) {
+    return Application::components[name];
+}
+
+void MainGazeTracker::calculateError(Point estimation, Point target, double &errorHorizontal, double &errorVertical, double &errorCombined) {
+    // Hardcoded width and height for the monitor for which to calculate the angular errors
+    double monitorWidthInCm = 53.15;
+    double monitorHeightInCm = 29.89;
+    
+    cv::Rect* geometry = Utils::getSecondMonitorGeometry();
+    
+    // Conversion factors for converting from pixels to cm
+    double horizontalConversionFactor = monitorWidthInCm / geometry->width;
+    double verticalConversionFactor  = monitorHeightInCm / geometry->height;
+    
+    // Center point for the main (second) monitor
+    Point centerPoint(geometry->width/2, geometry->height/2);
+    
+    // Calculate errors in both directions separately
+    // Angular error is: absolute difference between estimation angle and target angle
+    // with respect to the center of the monitor (assuming subject is facing the center of monitor)
+    errorHorizontal = (180/M_PI) * fabs(
+                atan(horizontalConversionFactor * (estimation.x - centerPoint.x)/ _headDistance) -
+                atan(horizontalConversionFactor * (target.x - centerPoint.x)    / _headDistance));
+    
+    errorVertical   = (180/M_PI) * fabs(
+                atan(verticalConversionFactor * (estimation.y - centerPoint.y)/ _headDistance) -
+                atan(verticalConversionFactor * (target.y - centerPoint.y)    / _headDistance));
+    
+    // Calculate (approximate) error in both directions combined
+    errorCombined = sqrt(pow(errorHorizontal, 2) + pow(errorVertical, 2));
+    
+    /*
+    std::cout << "Conversion factors: " << horizontalConversionFactor << " and " << verticalConversionFactor << std::endl;
+    std::cout << "Target    : " << target.x << ", " << target.y << std::endl;
+    std::cout << "Estimation: " << estimation.x << ", " << estimation.y << std::endl;
+    std::cout << "Center    : " << centerPoint.x << ", " << centerPoint.y << std::endl;
+    
+    std::cout << "Errors    : " << errorHorizontal << ", " << errorVertical << ", " << errorCombined << std::endl;
+    
+    std::cout << "Estimation hor angle : " << atan(horizontalConversionFactor * (estimation.x - centerPoint.x)/ _headDistance) << std::endl;
+    std::cout << "Target     hor angle : " << atan(horizontalConversionFactor * (target.x - centerPoint.x)    / _headDistance) << std::endl;
+    std::cout << "Abs difference       : " << fabs(
+                atan(horizontalConversionFactor * (estimation.x - centerPoint.x)/ _headDistance) -               
+                atan(horizontalConversionFactor * (target.x - centerPoint.x)    / _headDistance)) << std::endl;
+    std::cout << "In degrees           : " << (180/M_PI) * fabs(
+                atan(horizontalConversionFactor * (estimation.x - centerPoint.x)/ _headDistance) -               
+                atan(horizontalConversionFactor * (target.x - centerPoint.x)    / _headDistance)) << std::endl;
+                */
+    
 }
