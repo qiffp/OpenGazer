@@ -7,7 +7,7 @@ analysis of experiments and a head repositioning feature which allows users to c
 their head pose during eye tracker usage in order to improve accuracy.
 
 This software is the result of [on-going research] (http://mv.cvc.uab.es/projects/eye-tracker) in [Computer Vision Center (CVC)] (http://www.cvc.uab.es/index.asp?idioma=en) and 
-[Universitat Autònoma de Barcelona] (http://uab.es/english/), Barcelona. Please refer to the [CONTRIBUTORS] (https://github.com/tiendan/OpenGazer/blob/master/CONTRIBUTORS.md) file for the list of contributors in this project and the [DEVELOP] (https://github.com/tiendan/OpenGazer/blob/master/DEVELOP) file for how to develop additional modules.
+[Universitat Autònoma de Barcelona] (http://uab.es/english/), Barcelona. Please refer to the [CONTRIBUTORS] (https://github.com/tiendan/OpenGazer/blob/master/CONTRIBUTORS.md) file for the list of contributors in this project and the [DEVELOP] (https://github.com/tiendan/OpenGazer/blob/master/DEVELOP.md) file for how to develop additional modules.
 
 The installation steps for [Mac OS X] (#scripted-installation-for-mac-os-x-or-ubuntu-systems) and [Ubuntu] (#manual-installation-on-ubuntu-1204) systems are below.
 
