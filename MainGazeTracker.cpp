@@ -333,9 +333,6 @@ void MainGazeTracker::process() {
         Component* comp = getComponent(Application::config.all_components[i]);
         comp->draw();
     }
-    
-	// Display debug image in the window
-	Application::Components::debugWindow->display();
 
     
     for (int i=0; i<Application::config.gaze_components.size(); i++){
@@ -393,6 +390,35 @@ void MainGazeTracker::process() {
 			Application::Components::video->write(Application::Components::videoInput->frame);
 		}
 	}
+    
+    // Draw the onscreen instructions
+    // X -> CHOOSE POINTS
+	// Z -> CLEAR POINTS
+	// C -> CALIBRATE
+	// T -> TEST
+	cv::Mat &debugFrame = Application::Components::videoInput->debugFrame;
+	int fontFace = cv::FONT_HERSHEY_PLAIN;
+	double fontScale = 2;
+	int thickness = 2;
+
+    int baseline=0;
+    cv::Size textSize = cv::getTextSize("X : CHOOSE POINTS", fontFace, fontScale, thickness, &baseline);
+    cv::Point textPosition(debugFrame.cols - textSize.width - 30, 50);
+
+	// Write the text
+	cv::putText(debugFrame, "X : CHOOSE POINTS", textPosition, fontFace, fontScale, cv::Scalar::all(255), thickness, 8);
+	textPosition.y = textPosition.y + textSize.height + 10;
+
+	cv::putText(debugFrame, "Z : CLEAR POINTS", textPosition, fontFace, fontScale, cv::Scalar::all(255), thickness, 8);
+	textPosition.y = textPosition.y + textSize.height + 10;
+
+	cv::putText(debugFrame, "C : CALIBRATE", textPosition, fontFace, fontScale, cv::Scalar::all(255), thickness, 8);
+	textPosition.y = textPosition.y + textSize.height + 10;
+
+	cv::putText(debugFrame, "T : TEST", textPosition, fontFace, fontScale, cv::Scalar::all(255), thickness, 8);
+
+	// Display debug image in the window
+	Application::Components::debugWindow->display();
 }
 
 void MainGazeTracker::simulateClicks() {
