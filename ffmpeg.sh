@@ -17,7 +17,7 @@ wget http://download.videolan.org/pub/x264/snapshots/last_x264.tar.bz2
 tar xjvf last_x264.tar.bz2
 cd x264-snapshot*
 PATH="$PATH:$HOME/bin" ./configure --prefix="$HOME/ffmpeg_build" --bindir="$HOME/bin" --enable-static --disable-opencl
-PATH="$PATH:$HOME/bin" make
+PATH="$PATH:$HOME/bin" make -j2
 make install
 make distclean
 
@@ -29,7 +29,7 @@ unzip fdk-aac.zip
 cd mstorsjo-fdk-aac*
 autoreconf -fiv
 ./configure --prefix="$HOME/ffmpeg_build" --disable-shared
-make
+make -j2
 make install
 make distclean
 
@@ -45,7 +45,7 @@ wget http://webm.googlecode.com/files/libvpx-v1.3.0.tar.bz2
 tar xjvf libvpx-v1.3.0.tar.bz2
 cd libvpx-v1.3.0
 ./configure --prefix="$HOME/ffmpeg_build" --disable-examples
-make
+make -j2
 make install
 make clean
 
@@ -71,7 +71,7 @@ PATH="$PATH:$HOME/bin" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./conf
   --enable-libx264 \
   --enable-nonfree \
   --enable-x11grab
-PATH="$PATH:$HOME/bin" make
+PATH="$PATH:$HOME/bin" make -j2
 make install
 make distclean
 hash -r

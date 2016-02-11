@@ -20,7 +20,7 @@ if [[ "$(uname)" == "Linux" ]] ; then
   tar zxvf gsl-1.15.tar.gz
   pushd gsl-1.15 2>&1 > /dev/null
   ./configure
-  make
+  make -j2
   sudo make install
 
   echo "Installing FFMPEG from source"
