@@ -2,7 +2,7 @@
 UNAME=$(uname)
 
 if [ $UNAME = "Linux" ]; then
-	/home/onur/Qt/5.4/gcc_64/bin/qmake opengazer.pro
+	qmake opengazer.pro
 fi
 
 if [ $UNAME = "Darwin" ]; then

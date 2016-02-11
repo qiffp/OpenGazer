@@ -3,6 +3,7 @@ compiler:
   - gcc
 before_install:
   - bash ./dependencies.sh
+  - sudo apt-get install qt5-default
 script:
   - ./configure
   - make
