@@ -1,5 +1,8 @@
 language: cpp
 compiler:
   - gcc
-  - clang
-script: make
+before_install:
+  - bash dependencies.sh
+script:
+  - ./configure
+  - make
