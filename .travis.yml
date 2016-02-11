@@ -2,7 +2,7 @@ language: cpp
 compiler:
   - gcc
 before_install:
-  - bash dependencies.sh
+  - bash ./dependencies.sh
 script:
   - ./configure
   - make
