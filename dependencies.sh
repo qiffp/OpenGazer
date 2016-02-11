@@ -50,6 +50,8 @@ elif [[ "$(uname)" == "Darwin" ]] ; then
   brew tap homebrew/science
   brew install gsl cmake ffmpeg opencv fann boost
 
+  brew install qt5
+  brew link --force qt5
 fi
 
 popd 2>&1 /dev/null

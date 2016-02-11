@@ -1,4 +1,4 @@
-CVC Eye Tracker
+CVC Eye Tracker [![Build Status](https://travis-ci.org/tiendan/OpenGazer.svg?branch=master)](https://travis-ci.org/tiendan/OpenGazer)
 ===========================
 This eye tracking software is based on the open source project [Opengazer] (http://www.inference.phy.cam.ac.uk/opengazer/)
 and is improved with several features. The updated software supports video recording
@@ -9,20 +9,27 @@ their head pose during eye tracker usage in order to improve accuracy.
 This software is the result of [on-going research] (http://mv.cvc.uab.es/projects/eye-tracker) in [Computer Vision Center (CVC)] (http://www.cvc.uab.es/index.asp?idioma=en) and 
 [Universitat Autònoma de Barcelona] (http://uab.es/english/), Barcelona. Please refer to the [CONTRIBUTORS] (https://github.com/tiendan/OpenGazer/blob/master/CONTRIBUTORS.md) file for the list of contributors in this project and the [DEVELOP] (https://github.com/tiendan/OpenGazer/blob/master/DEVELOP.md) file for how to develop additional modules.
 
-The installation steps for [Mac OS X] (#scripted-installation-for-mac-os-x-or-ubuntu-systems) and [Ubuntu] (#manual-installation-on-ubuntu-1204) systems are below.
+The automatic installation for [Mac OS X and Ubuntu] (#scripted-installation-for-mac-os-x-or-ubuntu-systems) are below. If you have problems with this script, you can try the manual installation steps for [Mac] (#manual-installation-using-macports-on-mac-os-x-systems) and [Ubuntu] (#manual-installation-on-ubuntu-1204) at the bottom.
 
 After installation, check the [usage instructions] (#basic-usage-instructions).
 
 Scripted Installation for Mac OS X or Ubuntu systems
 -----
 
-OS X only: Install Xcode, Xcode Command Line Tools, XQuartz, Qt and Homebrew
+OS X only: Install Xcode, Xcode Command Line Tools, XQuartz and Homebrew
 
 Open a terminal and run:
   - cd opengazer
   - sudo bash dependencies.sh
   - ./configure
   - make
+
+Basic Usage Instructions
+------------
+1. Put the camera centrally under you monitor, so that the height of your face in the image is about half of the height of the image, and close to the centre of the image.  Make sure the background light level is reasonably constant across the image.
+2. Following the onscreen instructions, press the X key to choose anchor points on your face (repeat until you are happy with the results).
+3. Press the C key to start the calibration.
+4. When the calibration ends, the sample frog game will start. Here, the aim is to find the hidden frog. You have to use your gaze to locate the frog and stare at it for a few seconds until the frog is teleported to another location. Remember to keep still and only use your eyes for playing (and for calibration too!).
 
 
 Manual Installation using MacPorts on Mac OS X systems
@@ -67,22 +74,16 @@ Tested on a clean installation of Ubuntu 12.04 with a Logitech webcam.
 
 1. Install required libraries
   - sudo apt-get install libopencv-* libboost-dev libgsl0-dev libfann2 libfann-dev libv4l-dev cmake libboost-system-dev libboost-filesystem-dev
-2. Install GSL from source
+2. Download and install [Qt] (http://www.qt.io/download-open-source/)
+3. Install GSL from source
   - wget ftp://ftp.gnu.org/gnu/gsl/gsl-1.15.tar.gz
   - tar zxf gsl-1.15.tar.gz
   - cd gsl-1.15
   - ./configure
   - make
   - make install
-3. [Build and install] (https://trac.ffmpeg.org/wiki/UbuntuCompilationGuide) FFMPEG 0.7.13
-4. Build eyetracker
+4. [Build and install] (https://trac.ffmpeg.org/wiki/UbuntuCompilationGuide) FFMPEG 0.7.13
+5. Build eyetracker
   - cd opengazer
   - ./configure
   - make
-
-Basic Usage Instructions
-------------
-1. Put the camera centrally under you monitor, so that the height of your face in the image is about half of the height of the image, and close to the centre of the image.  Make sure the background light level is reasonably constant across the image.
-2. Following the onscreen instructions, press the X key to choose anchor points on your face (repeat until you are happy with the results).
-3. Press the C key to start the calibration.
-4. When the calibration ends, the sample frog game will start. Here, the aim is to find the hidden frog. You have to use your gaze to locate the frog and stare at it for a few seconds until the frog is teleported to another location. Remember to keep still and only use your eyes for playing (and calibration too!).
