@@ -20,12 +20,16 @@ if [[ "$(uname)" == "Linux" ]] ; then
   tar zxvf gsl-1.15.tar.gz
   pushd gsl-1.15 2>&1 > /dev/null
   ./configure
-  make -j2
+  make
   sudo make install
 
   echo "Installing FFMPEG from source"
   { popd; popd; } 2>&1 > /dev/null
   bash ffmpeg.sh
+
+  echo "Installing QT from Ubuntu repositories"
+  sudo apt-get install -y qt5-default
+
 
 elif [[ "$(uname)" == "Darwin" ]] ; then
   echo "OSX detected - this script hasn't yet been tested on OSX, but it should be fine. Press any key to continue or kill it now with Ctrl-C..."
