@@ -31,6 +31,17 @@ Basic Usage Instructions
 3. Press the C key to start the calibration.
 4. When the calibration ends, the sample frog game will start. Here, the aim is to find the hidden frog. You have to use your gaze to locate the frog and stare at it for a few seconds until the frog is teleported to another location. Remember to keep still and only use your eyes for playing (and for calibration too!).
 
+How to Contribute
+------------
+One nice-to-have feature would be compilation on Windows. If anybody wants to attempt it, here are some links:
+
+1. [boost library] (http://www.boost.org/doc/libs/1_55_0/more/getting_started/windows.html)
+2. [Gsl for Windows] (http://gnuwin32.sourceforge.net/packages/gsl.htm)
+3. [OpenCV + ffmpeg] (https://github.com/Itseez/opencv/tree/ddf82d0b154873510802ef75c53e628cd7b2cb13/3rdparty/ffmpeg)
+4. [OpenCV + ffmpeg (additional)] (http://kronoskoders.logdown.com/posts/256664-installing-opencv-and-ffmpeg-on-windows)
+5. [FANN (currently not used, but still in configuration)] (http://leenissen.dk/fann/wp/help/installing-fann/)
+
+If you get it working, let me know! Apart from this, for developing another module (eye corner detectors, iris center detectors, gaze estimation methods, etc.), check the [DEVELOP] (https://github.com/tiendan/OpenGazer/blob/master/DEVELOP.md) file for instructions.
 
 Manual Installation using MacPorts on Mac OS X systems
 -----------------------------------------------
