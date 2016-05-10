@@ -46,7 +46,7 @@ public:
 	cv::Point eyeCenterLeft;
 	
 private:
-    EyeExtractor* _eyeExtractor = NULL;
+    EyeExtractor* _eyeExtractor;
     
 	//cv::Point unscalePoint(cv::Point p, cv::Mat origSize);
 	//void scaleToFastSize(const cv::Mat &src,cv::Mat &dst);

@@ -33,8 +33,8 @@ private:
 	boost::scoped_ptr<ImProcess> _gaussianProcessX, _gaussianProcessY;
 	boost::scoped_ptr<ImProcess> _gaussianProcessXLeft, _gaussianProcessYLeft;
     
-    EyeExtractor* _eyeExtractor = NULL;
-    PointTracker* _pointTracker = NULL;
+    EyeExtractor* _eyeExtractor;
+    PointTracker* _pointTracker;
 
 	static double imageDistance(const cv::Mat *image1, const cv::Mat *image2);
 	static double covarianceFunction(const Utils::SharedImage &image1, const Utils::SharedImage &image2);

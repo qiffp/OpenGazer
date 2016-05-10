@@ -12,7 +12,9 @@
 
 #include "Application.h"
 
-EyeCenterDetector::EyeCenterDetector() {}
+EyeCenterDetector::EyeCenterDetector() {
+    _eyeExtractor = NULL;
+}
 
 
 void EyeCenterDetector::process() {

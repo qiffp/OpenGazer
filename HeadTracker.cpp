@@ -41,6 +41,7 @@ static Point predictPoint(Point p, double depth, double dMeanX, double dMeanY, d
 
 HeadTracker::HeadTracker()
 {
+    _pointTracker = NULL;
 }
 
 void HeadTracker::draw() {

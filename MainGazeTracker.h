@@ -45,7 +45,7 @@ private:
 	std::vector<Command> _commands;
 	int _commandIndex;
     
-    EyeExtractor* _eyeExtractor = NULL;
+    EyeExtractor* _eyeExtractor;
 	
 	int _headDistance;
 	QTimer _timer;

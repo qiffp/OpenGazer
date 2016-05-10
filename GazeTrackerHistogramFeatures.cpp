@@ -20,6 +20,9 @@ GazeTrackerHistogramFeatures::GazeTrackerHistogramFeatures()
 
 	gazePoint.x = 0;
 	gazePoint.y = 0;
+	
+	_histFeatureExtractor = NULL;
+	_eyeExtractor = NULL;
 }
 
 void GazeTrackerHistogramFeatures::process() {

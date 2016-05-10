@@ -11,7 +11,7 @@ class AnchorPointSelector: public Component {
 	cv::CascadeClassifier eyeCascade;
 	cv::CascadeClassifier noseCascade;
 	cv::CascadeClassifier mouthCascade;
-    PointTracker* _pointTracker = NULL;
+    PointTracker* _pointTracker;
 
 	void choosePoints();
 	void loadCascades();

@@ -28,6 +28,7 @@ HistogramFeatureExtractor::HistogramFeatureExtractor() {
 	this->verticalFeaturesLeft.create(cv::Size(1, VERTICAL_BIN_SIZE), CV_32SC1);
 
 	_groundTruth = new EyeExtractor(true);
+	_eyeExtractor = NULL;
 }
 
 HistogramFeatureExtractor::~HistogramFeatureExtractor() {

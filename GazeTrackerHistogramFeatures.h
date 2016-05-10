@@ -31,8 +31,8 @@ private:
 	std::vector<cv::Mat> _exemplars, _exemplarsLeft;
 	int _currentTargetSampleCount;
     
-    HistogramFeatureExtractor *_histFeatureExtractor = NULL;
-    EyeExtractor* _eyeExtractor = NULL;
+    HistogramFeatureExtractor *_histFeatureExtractor;
+    EyeExtractor *_eyeExtractor;
 
 	// Gaussian Process estimators for right and left eye and both directions (X, Y)
 	boost::scoped_ptr<HistProcess> _histX, _histY, _histXLeft, _histYLeft;

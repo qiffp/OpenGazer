@@ -35,7 +35,7 @@ private:
 	BlinkDetector _blinkDetectorLeft;
 	bool _isBlinking;
 	bool _fromGroundTruth;
-    PointTracker *_pointTracker = NULL;
+    PointTracker *_pointTracker;
 
 	void extractEye(const cv::Mat originalImage);
 	void extractEyeLeft(const cv::Mat originalImage);

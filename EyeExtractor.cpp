@@ -12,6 +12,8 @@ const int EyeExtractor::eyeDY = 32;
 const cv::Size EyeExtractor::eyeSize = cv::Size(eyeDX * 2, eyeDY * 2);
 
 EyeExtractor::EyeExtractor(bool fromGroundTruth):
+	_pointTracker(NULL),
+
 	eyeGrey(eyeSize, CV_8UC1),
 	eyeFloat(eyeSize, CV_32FC1),
 
